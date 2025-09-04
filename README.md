@@ -13,10 +13,13 @@ A REDCap project will create one record per slot.  Each slot will:
 - description (optional)
 - duration (optional)
 - filter - used to limit which slots are available from a given project
+
+### future:
 - Minimum hours before event to book:  e.g. 4 means you can't book at 4pm slot at 12:30pm.  Leave to 0/blank to ignore
 - Maximum days before event to book:  e.g. only let people book 2 weeks into the future
 - Minimum hours before event to cancel: if it is less than 4 hours, you cannot cancel your appt and must call to have it removed (e.g. you will be a no-show).
 - email address you can use to notify when appointments are booked or cancelled...
+
 
 
 Each slot will also have a number of fields to record who has 'taken' the slot - e.g. reserved it.
@@ -45,7 +48,8 @@ On the Project Level:
 
 We will do all config at the em level as action-tags won't be reliable given you have to map a survey project to a slot database...
 
-UI Elements:
+## UI Elements:
+
 - via survey
   - book appointment
   - view appointment

@@ -135,11 +135,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
     public function injectTimezoneSelector() {
         ?>
-            <!-- Button to trigger modal -->
-            <button type="button" id="tz_selector_button" class="btn-primaryrc btn btn-xs float-right" data-toggle="modal" data-target="#tzSelectorModal">
-                Edit Timezone
-            </button>
-            <div id="tzSelectorModal" class="modal fade" tabindex="-1" role="dialog">
+            <!-- Timezone modal -->
+            <div id="tz_select_modal" class="modal fade" tabindex="-1" role="dialog">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -148,13 +145,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body" style="width:100%;">
                             <p>Timezone selection content goes here.</p>
                             <select id="tz_select" class="form-control"></select>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary">Save</button>
+                            <button id="tz_select_save_button" type="button" class="btn btn-primary">Save</button>
                         </div>
                     </div>
                 </div>
