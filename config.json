@@ -1,0 +1,129 @@
+{
+    "name": "Timezone Scheduler",
+
+    "namespace": "Stanford\\TimezoneScheduler",
+
+    "description": "This module is intended to facilitate scheduling with support for multiple client timezones",
+
+    "documentation": "README.md",
+
+    "framework-version": 16,
+
+    "authors": [
+        {
+            "name": "Andy Martin",
+            "email": "andy123@stanford.edu",
+            "institution": "Stanford Medicine"
+        }
+    ],
+
+    "enable-every-page-hooks-on-system-pages": false,
+
+    "enable-ajax-logging": false,
+
+    "auth-ajax-actions": [
+        "TestAction",
+        "getTimezones"
+    ],
+
+    "no-auth-ajax-actions": [
+        "TestAction",
+        "getTimezones"
+
+    ],
+
+    "links": {
+        "project": [
+            {
+                "name": "Timezone Scheduler Admin",
+                "icon": "fas fa-cog",
+                "url": "pages/admin.php"
+            }
+        ],
+        "control-center": [
+
+        ]
+    },
+
+    "no-auth-pages": [
+
+    ],
+
+    "project-settings": [
+        {
+            "name": "Configure an Entry for Each Timezone Slot",
+            "key": "instances",
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "key": "slot-project-id",
+                    "name": "<b>Slot Project ID</b><br>Enter the project_id that contains database of slots<br>In the future we might make this a super-user-only setting",
+                    "required": true,
+                    "type": "project-id"
+                },
+                {
+                    "key": "slot-id-field",
+                    "name": "<b>Slot ID Field</b><br>Field containing blank text field for slot ID",
+                    "required": true,
+                    "type": "field-list"
+                },
+                {
+                    "key": "slot-id-field-event-id",
+                    "name": "<b>Slot ID Field Event</b><br>If project is longitudinal, please select the event containing the slot field",
+                    "required": false,
+                    "type": "event-list"
+                },
+                {
+                    "key": "slot-datetime-field",
+                    "name": "<b>Slot DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected slot's date/time (in server timezone) will be stored",
+                    "required": false,
+                    "type": "field-list"
+                },
+                {
+                    "key": "slot-timezone-field",
+                    "name": "<b>Slot Timezone Field</b><br><i>(Optional)</i> Select a text field here to store the participant's local timezone",
+                    "required": false,
+                    "type": "field-list"
+                },
+                {
+                    "key": "slot-filter-expression",
+                    "name": "<b>Filter Expression</b><br>(to be developed) -- idea is that you could enter expression here that would be evaluated with the record's data and could be used to select a subset of available slots in the other database...",
+                    "required": false,
+                    "type": "text"
+                },
+                {
+                    "key": "disabled",
+                    "name": "<b>Disable</b><br>Check to disable this config without deleting it",
+                    "type": "checkbox"
+                }
+            ]
+        },
+        {
+            "key": "enable-project-debug-logging",
+            "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
+            "required": false,
+            "type": "checkbox"
+        }
+    ],
+
+    "system-settings": [
+        {
+            "key": "enable-system-debug-logging",
+            "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
+            "required": false,
+            "type": "checkbox"
+        }
+    ],
+
+    "crons": [
+
+    ],
+
+    "compatibility": {
+        "php-version-min": "",
+        "php-version-max": "",
+        "redcap-version-min": "",
+        "redcap-version-max": ""
+    }
+}
