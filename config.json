@@ -23,12 +23,16 @@
 
     "auth-ajax-actions": [
         "TestAction",
-        "getTimezones"
+        "getTimezones",
+        "getAppointments",
+        "saveAppointment"
     ],
 
     "no-auth-ajax-actions": [
         "TestAction",
-        "getTimezones"
+        "getTimezones",
+        "getAppointments",
+        "saveAppointment"
 
     ],
 
