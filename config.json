@@ -24,15 +24,19 @@
     "auth-ajax-actions": [
         "TestAction",
         "getTimezones",
-        "getAppointments",
-        "saveAppointment"
+        "getAppointmentOptions",
+        "getAppointment",
+        "saveAppointment",
+        "reserveSlot"
     ],
 
     "no-auth-ajax-actions": [
         "TestAction",
         "getTimezones",
-        "getAppointments",
-        "saveAppointment"
+        "getAppointmentOptions",
+        "getAppointment",
+        "saveAppointment",
+        "reserveSlot"
 
     ],
 
@@ -55,40 +59,49 @@
 
     "project-settings": [
         {
-            "name": "Configure an Entry for Each Timezone Slot",
+            "name": "Configuration instance for each reservable appointment slot",
             "key": "instances",
             "type": "sub_settings",
             "repeatable": true,
             "sub_settings": [
                 {
                     "key": "slot-project-id",
-                    "name": "<b>Slot Project ID</b><br>Enter the project_id that contains database of slots<br>In the future we might make this a super-user-only setting",
+                    "name": "<b>Slot Project ID</b><br>Enter the project_id that contains database of reservation slots.  The project must match the required project format (<i>i.e.</i> use the template to create new slot projects)",
                     "required": true,
                     "type": "project-id"
                 },
                 {
                     "key": "slot-id-field",
-                    "name": "<b>Slot ID Field</b><br>Field containing blank text field for slot ID",
+                    "name": "<b>Slot ID Field</b><br>Field in this project that will hold the reserved appointment slot once selected by a user",
                     "required": true,
-                    "type": "field-list"
+                    "type": "field-list",
+                    "field-type": "text"
                 },
                 {
                     "key": "slot-id-field-event-id",
-                    "name": "<b>Slot ID Field Event</b><br>If project is longitudinal, please select the event containing the slot field",
-                    "required": false,
+                    "name": "<b>Slot ID Field Event</b><br>The event id where the Slot ID Field above resides.<br/>(<i>If you wish to use the same Slot Id Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i>)",
+                    "required": true,
                     "type": "event-list"
                 },
                 {
                     "key": "slot-datetime-field",
-                    "name": "<b>Slot DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected slot's date/time (in server timezone) will be stored",
+                    "name": "<b>Slot DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected slot's date/time (in server timezone) will be stored.  This can be used to automate reminders via notifications.  The field must be in the same event specified above",
                     "required": false,
-                    "type": "field-list"
+                    "type": "field-list",
+                    "validation": "datetime"
                 },
                 {
-                    "key": "slot-timezone-field",
-                    "name": "<b>Slot Timezone Field</b><br><i>(Optional)</i> Select a text field here to store the participant's local timezone",
+                    "key": "slot-participant-formatted-date-field",
+                    "name": "<b>Slot Participant Formatted Date</b><br><i>(Optional)</i> Select a text field and the nicely formatted date and time with timezone will be stored.  This could be inserted into a reminder email so the participant can see the appointment time in their selected timezone",
                     "required": false,
-                    "type": "field-list"
+                    "type": "field-list",
+                    "field-type": "text"
+                },
+                {
+                    "key": "slot-record-url",
+                    "name": "<b>Slot Record URL</b><br><i>(Optional)</i> This field will contain a URL to the Slot Project for this slot ID.  Useful for an admin to be able to jump to the Slot database.",
+                    "required": false,
+                    "type": "text"
                 },
                 {
                     "key": "slot-filter-expression",
