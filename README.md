@@ -23,7 +23,7 @@ A REDCap project will create one record per slot.  Each slot will:
 
 
 Each slot will also have a number of fields to record who has 'taken' the slot - e.g. reserved it.
-- project id (so many projects can reference a single slot database)
+- source project id (so many projects can reference a single slot database)
 - source record
 - source event
 - source instance?
@@ -64,4 +64,33 @@ We will do all config at the em level as action-tags won't be reliable given you
   - make sure all appointments configured are 'valid' and current
   - potentially add ability to cancel many appointments
   - potentially add ability to sync to a google caneldar...
+
+
+
+## How to display the selected appointment to the end-user?
+
+Perhpas the format should be specified in the EM config:
+
+Slot Description (e.g. New Patient Visit) (#SLOT_ID#)
+Scheduled: 07/15/2025 at 4:00PM PST (2:00PM CST)
+
+```
+{{title}} ({{slot_id}})
+Scheduled: {{date}} at {{time}} {{server-tza}} ({{client-time}} {{client-tza}})
+```
+`title` is slot title
+`date` is slot date field (yyyy-mm-dd)
+`time` is slot time field (hh:mm) in 24 hour time
+
+`server-time` means 'HH:MM am/pm' in server timezone
+`server-nicedate` means 'Sat, Jan 1st, 2025'
+`server-date` means mm/dd/yyyy
+`server-ts` means 'yyyy-mm-dd hh:mm' (timestamp)
+`server-tza` means server timezone abbreviation (e.g. PST, EDT)
+
+`client-time` means 'HH:MM am/pm' in client timezone
+`client-nicedate` means 'Sat, Jan 1st, 2025'
+`client-tza` means client timezone abbreviation (e.g. PST, CST, EDT)
+`client-date` means mm/dd/yyyy
+`client-ts` means 'yyyy-mm-dd hh:mm' (timestamp)
 
