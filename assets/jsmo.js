@@ -31,7 +31,7 @@
                 td = jq_input.closest('td.data');
 
                 // Hide the current contents of the slot-id field
-                td.children().wrapAll('<div class="tz_hidden xxhide bg-danger"></div>');
+                td.children().wrapAll('<div class="tz_hidden hide bg-danger"></div>');
 
                 // Render an error message if the survey/form is on a not-saved record_id
                 if(module.data.record_id === null) {
@@ -69,6 +69,9 @@
             // Add handler for cancel/reschedule clicks
             $('#questiontable').on('click', 'button[data-action="cancel-appt"]', function() {
                 console.log('Cancel Button Click', $(this));
+                var field = $(this).closest('.tz_select_container').data('field');
+                console.log('Cancel Field:', field);
+                module.cancelAppointment(field);
             });
 
             // Add handler for schedule click next to slot button
@@ -103,48 +106,93 @@
 
         },
 
+        // Cancel Appointment
+        cancelAppointment: function(field) {
+            console.log('Cancel Appointment called for field:', field);
+            // Logic to cancel the appointment goes here
+
+            jq_input = module.data.config[field]['jq_input'];
+            console.log('Field:', field, 'jq_input:', jq_input);
+            const slot_id = jq_input.val();
+            const config_key = module.data.config[field]['config_key'];
+            const payload = {
+                'slot_id': slot_id,
+                'config_key': config_key
+            }
+            module.ajax('cancelAppointment', payload).then(function(response) {
+                console.log('getAppointmentData response:', response);
+
+                // loop through response.data and set values in form
+                for (const [key, value] of Object.entries(response.data)) {
+                    const input = $('input[name="' + key + '"]');
+                    if (input) {
+                        input.val(value).trigger('change');
+                    }
+                }
+
+                // Close the modal
+                $('#tz_select_appt_modal').modal('hide');
+
+                // Refresh the slot input
+                module.updateContainer(field);
+            }).catch(function (err) {
+                console.error('Error fetching appointment data:', err);
+            });
+        },
+
         // Handle when new appointment is saved from the modal ui
         saveAppointmentButton: function() {
             tz_select_appt = $('#tz_select_appt');
             console.log("Appointment SAVE clicked ", tz_select_appt.val(), tz_select_appt.data('field'), tz_select_appt.select2('data'));
 
             slot_id = tz_select_appt.val();
-            option_data = tz_select_appt.select2('data');
-            option_text = option_data[0].text;
-            field = tz_select_appt.data('field');
-
-            // slot_field = $('#tz_select_container_' + field);
-            config_key = module.data.config[field]['config_key'];
-
             if (!slot_id) {
                 alert('Please select an appointment before saving.  To cancel an appointment (if allowed) use the button on the entry form');
                 return;
             }
 
-            // TODO: See if that value is still available and reserve it!
+            field = tz_select_appt.data('field');
+            config_key = module.data.config[field]['config_key'];
+
+            // Get all the option label data to send to the server
+            let option_selected = tz_select_appt.select2('data')[0];
+            // console.log("Option Data:", option_selected);
+
             payload = {
-                "slot_id": slot_id,
-                "config_key": config_key
+                'slot_id': slot_id,
+                'config_key': config_key,
+                'timezone': module.getTimezone(),
+                'text': option_selected['text'],
+                'server_dt': option_selected['server_dt']
             };
             module.ajax('reserveSlot', payload).then(function (response) {
                 if (response.success) {
-                    console.log("Slot reserved successfully:", response.data);
-                    console.log(tz_select_appt.select2('data'));
+                    console.log("Slot reserved successfully", response.data);
+                    // TODO: Set data
+                    // loop through response.data and set values in form
+                    for (const [key, value] of Object.entries(response.data)) {
+                        const input = $('input[name="' + key + '"]');
+                        if (input) {
+                            input.val(value).trigger('change');
+                        }
+                    }
 
+                    // Close the modal
+                    console.log("About to hide modal", $('#tz_select_appt_modal'));
+                    $('#tz_select_appt_modal').modal('hide');
+                    console.log("Modal closed");
+
+                    // Refresh the slot input
+                    module.updateContainer(field);
                 } else {
                     console.log("Failed to reserve slot:", response);
-                    alert('failed - unable to reserve selected appointment:\n\n' + option_text + '\n\nPlease try again.');
+                    alert('failed - unable to reserve selected appointment:\n\n' + option_selected['text'] + '\n\nPlease try again.');
                     module.refreshAppointmentSelector();  // or do we click the select button again?
                 }
             }).catch(function (err) {
                 console.log("Error reserving slot:", err);
             });
         },
-
-        //TODO
-        InitializeField: function() {
-        },
-
 
 
         getTimezone: function() {
@@ -189,21 +237,30 @@
 
         //TODO
         getAppointmentData: function(field) {
-            var slot_id = module.data[field]['jq_input'].val();
-            var timezone = module.getTimezone();
             var config_key = module.data.config[field]['config_key'];
-
-            if (slot_id) {
-                var payload = {
-                    "slot_id": slot_id,
-                    "config_key": config_key,
-                    "timezone": timezone
-                };
-                module.ajax('getAppointment', payload).then(function(response) {
-                    console.log('getAppointment response:', response);
-                    // If the response is an object, not an array, you can convert it to
-                });
+            var timezone = module.getTimezone();
+            var payload = {
+                "config_key": config_key,
+                "timezone": timezone
             }
+
+            // slot_id = module.data.config[field]['config_key']
+
+            // ['jq_input'].val();
+            // var config_key = module.data.config[field]['config_key'];
+
+            // if (slot_id) {
+            //     var payload = {
+            //         "slot_id": slot_id,
+            //         "config_key": config_key,
+            //         "timezone": timezone
+            //     };
+
+            module.ajax('getAppointmentData', payload).then(function(response) {
+                console.log('getAppointmentData response:', response);
+            }).catch(function (err) {
+                console.error('Error fetching appointment data:', err);
+            });
         },
 
         setAppointmentField: function(field) {
@@ -211,6 +268,7 @@
             jq_select.data('field', field);
         },
 
+        // Pull all appointment slots and update the select2 input
         refreshAppointmentSelector: function(){
             // Assumes that the modal is already visible
             jq_select = $('#tz_select_appt');
@@ -243,7 +301,7 @@
             };
 
             // Update timezone display
-            $('#tz_display').text('Displaying appointments in the ' + timezone + ' timezone');
+            $('#tz_display').html('Displaying appointments in the <b>' + timezone + '</b> timezone');
 
             module.ajax('getAppointmentOptions', $payload).then(function (response) {
                 console.log('getAppointmentOptions response: ', response);
@@ -280,6 +338,7 @@
             });
         },
 
+        // Pull (or reuse) timezone values for select2 input
         refreshTimezoneSelector: function() {
             // Assumes that the modal is already visible
             jq_select = $('#tz_select_timezone');
@@ -309,19 +368,45 @@
             }
         },
 
-        // not sure if this is being used yet...
+        // Update rendering of the appointment container based on slot value
         updateContainer: function(field) {
-            slot_id = module.data.config[field]['jq_input'].val();
+            jq_intput = module.data.config[field];
+            slot_id = jq_input.val();
             jq_container = module.data.config[field]['jq_container'];
 
             if (slot_id) {
-                // If there's a slot value, we should fetch/verify appointment data
-                // and render it in the timezone of the viewer
-                console.log('Fetching appointment data for slot ID:', slot_id);
-
-                var result = module.getAppointmentData(field);
-
-
+                // If there's a slot value - let's see if we have the nice text for the current timezone
+                slot_text = jq_input.data('slot_text');
+                slot_timezone = jq_input.data('slot_timezone');
+                timezone = module.getTimezone();
+                if (!slot_text || slot_timezone !== timezone) {
+                    // We need to query to refresh this field
+                    // result = module.getAppointmentData(field);
+                    var payload = {
+                        "config_key": module.data.config[field]['config_key'],
+                        "timezone": timezone,
+                    }
+                    module.ajax('getAppointmentData', payload).then(function(response) {
+                        console.log('getAppointmentData response:', response);
+                        if (response.success) {
+                            if (response.data.id != slot_id) {
+                                // This means the current value doesn't match the saved value.  This shouldn't happen
+                                alert ("This record's current " + field + " value of " + slot_id + "\ndoes not match the saved value of " + response.data.id + ".  This shouldn't happen.");
+                                return false;
+                            }
+                            jq_input.data('slot_text', response.data.text);
+                            jq_input.data('slot_timezone', timezone);
+                            module.updateContainer(field);  // Recurse once
+                        }
+                    }).catch(function (err) {
+                        console.error('Error fetching appointment data:', err);
+                    });
+                    return;
+                } else {
+                    // We have the text already
+                    $('.appt-text', jq_container).text(slot_text);
+                    $('.slot-id', jq_container).text('(Slot #' + slot_id + ')');
+                }
                 $('.display-value', jq_container).show();
                 $('.select-value', jq_container).hide();
 

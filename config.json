@@ -24,18 +24,20 @@
     "auth-ajax-actions": [
         "TestAction",
         "getTimezones",
+        "getAppointmentData",
         "getAppointmentOptions",
-        "getAppointment",
-        "saveAppointment",
+        "cancelAppointment",
+        "getSlot",
         "reserveSlot"
     ],
 
     "no-auth-ajax-actions": [
         "TestAction",
         "getTimezones",
+        "getAppointmentData",
         "getAppointmentOptions",
-        "getAppointment",
-        "saveAppointment",
+        "cancelAppointment",
+        "getSlot",
         "reserveSlot"
 
     ],
@@ -66,42 +68,43 @@
             "sub_settings": [
                 {
                     "key": "slot-project-id",
-                    "name": "<b>Slot Project ID</b><br>Enter the project_id that contains database of reservation slots.  The project must match the required project format (<i>i.e.</i> use the template to create new slot projects)",
+                    "name": "<b>Slot DB Project ID</b><br>Enter the project_id on this server that contains the database of available reservation slots.  The project MUST match the required project format (<i>i.e.</i> use the template to create any new slot projects)",
                     "required": true,
                     "type": "project-id"
                 },
                 {
                     "key": "slot-id-field",
-                    "name": "<b>Slot ID Field</b><br>Field in this project that will hold the reserved appointment slot once selected by a user",
+                    "name": "<b>Appointment ID Field</b><br>Field in this project that will hold the reserved appointment slot once selected by a user",
                     "required": true,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
                     "key": "slot-id-field-event-id",
-                    "name": "<b>Slot ID Field Event</b><br>The event id where the Slot ID Field above resides.<br/>(<i>If you wish to use the same Slot Id Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i>)",
+                    "name": "<b>Appointment ID Field Event</b><br>The event id where the Appointment ID Field above resides.<br/>(<i>If you wish to use the same Appointment Id Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i>)",
                     "required": true,
                     "type": "event-list"
                 },
                 {
                     "key": "slot-datetime-field",
-                    "name": "<b>Slot DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected slot's date/time (in server timezone) will be stored.  This can be used to automate reminders via notifications.  The field must be in the same event specified above",
+                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected appointment slot's date/time (in your server's timezone) will be stored.  This can be used to automate reminders to the participant ahead of the appointment.  This field must also be in the same event id specified above.  This field MUST BE VALIDATED AS Y-M-D H:M - any other format may cause errors",
                     "required": false,
                     "type": "field-list",
                     "validation": "datetime"
                 },
                 {
                     "key": "slot-participant-formatted-date-field",
-                    "name": "<b>Slot Participant Formatted Date</b><br><i>(Optional)</i> Select a text field and the nicely formatted date and time with timezone will be stored.  This could be inserted into a reminder email so the participant can see the appointment time in their selected timezone",
+                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
-                    "key": "slot-record-url",
+                    "key": "slot-record-url-field",
                     "name": "<b>Slot Record URL</b><br><i>(Optional)</i> This field will contain a URL to the Slot Project for this slot ID.  Useful for an admin to be able to jump to the Slot database.",
                     "required": false,
-                    "type": "text"
+                    "type": "field-list",
+                    "field-type": "text"
                 },
                 {
                     "key": "slot-filter-expression",
