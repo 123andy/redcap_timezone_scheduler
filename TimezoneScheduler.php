@@ -22,7 +22,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $this->emDebug(__FUNCTION__ . " called for project " . implode(",",func_get_args()));
 
         $config = $this->filter_tz_config($instrument, $event_id);
-
+        $this->emDebug("Filtered config for instrument $instrument, event $event_id: ", $config);
         // Example of injecting a JavaScript module object
         $this->injectJSMO([
             "config" => $config,
@@ -32,16 +32,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         $this->injectTimezoneSelector();
 
-    }
-
-
-    public function redcap_every_page_before_render( int $project_id ) {
-    //    $this->emDebug(__FUNCTION__ . " called for project $project_id");
-    }
-
-
-    public function redcap_save_record( int $project_id, $record, string $instrument, int $event_id, $group_id, $survey_hash, $response_id, $repeat_instance ) {
-       $this->emDebug(__FUNCTION__ . " called for project $project_id");
     }
 
 
@@ -61,33 +51,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // NOT USED
-    public function formatAppointments(array $appointments, string $timezone): array {
-        $this->emDebug("formatAppointments called with timezone: ", $timezone);
-
-        $formatted = [];
-        $client_tz = new DateTimeZone($timezone);
-        foreach ($appointments as $appointment) {
-            $server_dt = new DateTime($appointment['date'] . " " . $appointment['time']);
-            $client_dt = new DateTime($appointment['date'] . " " . $appointment['time'], $client_tz);
-
-            $formatted[] = [
-                'id' => $appointment['slot_id'],
-                'text' => $server_dt->format('D, M jS ga (Y-m-d H:i T)'),
-                'tz' => $timezone,
-                'server_dt' => $server_dt->format('Y-m-d H:i'),
-                'client_dt' => $client_dt->format('Y-m-d H:i')
-            ];
-        }
-
-        return $formatted;
-    }
-
-
     public function getAppointmentSlotId($config_key, $record, $event_id, $repeat_instance) {
         $this->emDebug("getAppointment called with config_key: $config_key, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
         $config = $this->get_tz_config($config_key);
-        $slot_id_field = $config['slot-id-field'] ?? null;
+        $slot_id_field = $config['appt-field'] ?? null;
         if (empty($slot_id_field)) {
             $this->emError("Invalid configuration - missing slot id field for config_key: $config_key", $config);
             return false;
@@ -121,6 +88,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         foreach ($slots as $slot_id => $data) {
             $date = $data['date'];
             $time = $data['time'];
+            $title = $data['title'] ?? '';
             if (empty($date) || empty($time)) {
                 $this->emError("Skipping slot $slot_id due to missing date or time", $data);
                 continue;
@@ -145,6 +113,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $client_dt->setTimezone($client_dtz);
             $appointments[] = [
                 'id' => strval($slot_id),
+                'title' => $title,
                 'text' => $client_dt->format('D, M jS @ ga T'),
                 'client_dt' => $client_dt->format('Y-m-d H:i'),
                 'server_dt' => $server_dt->format('Y-m-d H:i'),
@@ -188,12 +157,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         }
         return $slots;
     }
-
-
-    // public function getConfigByIndex($index) {
-    //     $this->load_module_config();
-    //     return $this->config[$index] ?? null;
-    // }
 
 
     // Return the slot record for the specified slot_id
@@ -284,9 +247,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         // Now lets clear the current record
         $data = [];
-        $data[$config['slot-id-field']] = null;
-        if ($config['slot-datetime-field']) $data[$config['slot-datetime-field']] = null;
-        if ($config['slot-participant-formatted-date-field']) $data[$config['slot-participant-formatted-date-field']] = null;
+        $data[$config['appt-field']] = null;
+        if ($config['appt-datetime-field']) $data[$config['appt-datetime-field']] = null;
+        if ($config['appt-participant-formatted-date-field']) $data[$config['appt-participant-formatted-date-field']] = null;
         if ($config['slot-record-url-field']) $data[$config['slot-record-url-field']] = null;
         if ($config['slot-record-url-field']) $data[$config['slot-record-url-field']] = null;
         $params = [
@@ -355,7 +318,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             // Reserve slot
             $slot['source_project_id'] = $project_id;
             $slot['source_record_id'] = $record;
-            $slot['source_field'] = $config['slot-id-field'] ?? '';
+            $slot['source_field'] = $config['appt-field'] ?? '';
             $slot['source_event_id'] = $event_id;
             $slot['source_instance_id'] = $repeat_instance;
             // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=1&page=test_form&event_id=88&instance=1
@@ -371,12 +334,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             if ($save) {
                 // Lets also update the current record so that the slot_id is saved here as well
                 $data = [];
-                $data[$config['slot-id-field']] = $slot_id;
-                if ($config['slot-datetime-field']) {
-                    $data[$config['slot-datetime-field']] = $server_dt;
+                $data[$config['appt-field']] = $slot_id;
+                if ($config['appt-datetime-field']) {
+                    $data[$config['appt-datetime-field']] = $server_dt;
                 }
-                if ($config['slot-participant-formatted-date-field']) {
-                    $data[$config['slot-participant-formatted-date-field']] = $text;
+                if ($config['appt-participant-formatted-date-field']) {
+                    $data[$config['appt-participant-formatted-date-field']] = $text;
                 }
                 if ($config['slot-record-url-field']) {
                     //https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
@@ -661,6 +624,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     background-color: #337ab7;
                     color: white;
                 }
+
+                li.select2-results__option {
+                    border-top: 1px solid #eee;
+                }
             </style>
         <?php
     }
@@ -696,8 +663,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Filter the configuration based on the instrument and event_id and has a key of the order
         // in the repeating subsettings of the module config
         // $filtered = array_filter($this->config, function($item) use ($fields, $event_id) {
-        //         return in_array($item['slot-id-field'], $fields) &&
-        //             $item['slot-id-field-event-id'] == $event_id &&
+        //         return in_array($item['appt-field'], $fields) &&
+        //             $item['appt-event-id'] == $event_id &&
         //             $item['disabled'] == false;
         //     }
         // );
@@ -706,8 +673,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $result = [];
         foreach ($this->config as $key => $item) {
             if ($item['disabled']) continue;  // skip disabled configurations
-            if ($item['slot-id-field-event-id'] != $event_id) continue; // skip wrong event
-            $field = $item['slot-id-field'];
+            if ($item['appt-event-id'] != $event_id) continue; // skip wrong event
+            $field = $item['appt-field'];
             if (!in_array($field, $fields)) continue; // skip if field not in instrument
             $result[$field] = ["config_key" => $key];
         }
@@ -722,8 +689,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             foreach ($instances as $index => $instance) {
                 // Load each instance's configuration
                 $slot_project_id = $instance['slot-project-id'] ?? null;
-                $field = $instance['slot-id-field'] ?? null;
-                $event_id = $instance['slot-id-field-event-id'] ?? null;
+                $field = $instance['appt-field'] ?? null;
+                $event_id = $instance['appt-event-id'] ?? null;
                 if (is_null($slot_project_id) || is_null($field) || is_null($event_id)) {
                     $this->emError('Skipping invalid configuration for instance ' . $index, $instance);
                     // skip the configuration
@@ -804,6 +771,42 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         </script>
         <?php
     }
+
+
+    ////////////////////////////////
+
+    public function redcap_every_page_before_render( int $project_id ) {
+    //    $this->emDebug(__FUNCTION__ . " called for project $project_id");
+    }
+
+
+    public function redcap_save_record( int $project_id, $record, string $instrument, int $event_id, $group_id, $survey_hash, $response_id, $repeat_instance ) {
+       $this->emDebug(__FUNCTION__ . " called for project $project_id");
+    }
+
+
+    // NOT USED
+    public function formatAppointments(array $appointments, string $timezone): array {
+        $this->emDebug("formatAppointments called with timezone: ", $timezone);
+
+        $formatted = [];
+        $client_tz = new DateTimeZone($timezone);
+        foreach ($appointments as $appointment) {
+            $server_dt = new DateTime($appointment['date'] . " " . $appointment['time']);
+            $client_dt = new DateTime($appointment['date'] . " " . $appointment['time'], $client_tz);
+
+            $formatted[] = [
+                'id' => $appointment['slot_id'],
+                'text' => $server_dt->format('D, M jS ga (Y-m-d H:i T)'),
+                'tz' => $timezone,
+                'server_dt' => $server_dt->format('Y-m-d H:i'),
+                'client_dt' => $client_dt->format('Y-m-d H:i')
+            ];
+        }
+
+        return $formatted;
+    }
+
 
 
 }

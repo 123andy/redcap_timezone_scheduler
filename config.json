@@ -73,28 +73,41 @@
                     "type": "project-id"
                 },
                 {
-                    "key": "slot-id-field",
+                    "key": "appt-field",
                     "name": "<b>Appointment ID Field</b><br>Field in this project that will hold the reserved appointment slot once selected by a user",
                     "required": true,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
-                    "key": "slot-id-field-event-id",
+                    "key": "appt-event-id",
                     "name": "<b>Appointment ID Field Event</b><br>The event id where the Appointment ID Field above resides.<br/>(<i>If you wish to use the same Appointment Id Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i>)",
                     "required": true,
                     "type": "event-list"
                 },
                 {
-                    "key": "slot-datetime-field",
-                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Select a date/time field here and the selected appointment slot's date/time (in your server's timezone) will be stored.  This can be used to automate reminders to the participant ahead of the appointment.  This field must also be in the same event id specified above.  This field MUST BE VALIDATED AS Y-M-D H:M - any other format may cause errors",
+                    "key": "appt-datetime-field",
+                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Field in this project to hold the appointment date/time in the <b>server's timezone</b>.  This can be used to automate reminders to the participant using datediff logic.  This field <b>MUST BE VALIDATED AS Y-M-D H:M</b> - any other format may cause errors.  It must also be in the same event as the appointment id field above",
                     "required": false,
                     "type": "field-list",
                     "validation": "datetime"
                 },
                 {
-                    "key": "slot-participant-formatted-date-field",
-                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone",
+                    "key": "appt-description-field",
+                    "name": "<b>Appointment Description Field</b><br><i>(Optional)</i> Field in this project (as unvalidated <b>note field</b>).  A description of the appointment will be saved upon reservation and can be customized below:",
+                    "required": false,
+                    "type": "field-list",
+                    "field-type": "text"
+                },
+                {
+                    "key": "appt-description-format",
+                    "name": "<b>Appointment Description Format</b><br><i>(Optional)</i> Specify the format (like piping) for the appointment description. This format will control what is stored in the Appointment Description Field specified above.  It can be useful for piping into the body of a reminder to the participant.<br/>`{{title}}` is slot title<br/>`{{date}}` is slot date field (yyyy-mm-dd)<br/>`{{time}}` is slot time field (hh:mm) in 24 hour time<br/>`{{server-time}}` means 'HH:MM am/pm' in server timezone<br/>`{{server-nicedate}}` means 'Sat, Jan 1st, 2025'<br/>`{{server-date}}` means mm/dd/yyyy<br/>`{{server-ts}}` means 'yyyy-mm-dd hh:mm' (timestamp)<br/>`{{server-tza}}` means server timezone abbreviation (e.g. PST, EDT)<br/>`{{client-time}}` means 'HH:MM am/pm' in client timezone<br/>`{{client-nicedate}}` means 'Sat, Jan 1st, 2025'<br/>`{{client-tza}}` means client timezone abbreviation (e.g. PST, CST, EDT)<br/>`{{client-date}}` means mm/dd/yyyy<br/>`{{client-ts}}` means 'yyyy-mm-dd hh:mm' (timestamp)",
+                    "required": false,
+                    "type": "textarea"
+                },
+                {
+                    "key": "appt-participant-formatted-date-field",
+                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone.",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"

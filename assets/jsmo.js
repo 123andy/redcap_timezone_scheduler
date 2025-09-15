@@ -12,11 +12,18 @@
     // Extend the official JSMO with new methods for this EM
     Object.assign(module, {
 
+        debug: function(...args) {
+            if (module.config.debug) {
+                const caller = this.debug.caller.name ? this.debug.caller.name : 'unknown';
+                console.log("[TimezoneScheduler (" + caller + ")]", ...args);
+            }
+        },
 
+        // This function is called on survey and data entry form render to initialize the form
         initializeInstrument: function() {
 
             if (!module.data.config) {
-                console.log("No configuration found for this instrument");
+                module.debug("No configuration found for this instrument");
                 return;
             }
 
@@ -71,7 +78,9 @@
                 console.log('Cancel Button Click', $(this));
                 var field = $(this).closest('.tz_select_container').data('field');
                 console.log('Cancel Field:', field);
-                module.cancelAppointment(field);
+                if(confirm('You are about to cancel your appointment.  If this is allowed, you will be able to select a new appointment time.\n\nClick OK to continue.')) {
+                    module.cancelAppointment(field);
+                }
             });
 
             // Add handler for schedule click next to slot button
@@ -106,6 +115,8 @@
 
         },
 
+
+
         // Cancel Appointment
         cancelAppointment: function(field) {
             console.log('Cancel Appointment called for field:', field);
@@ -120,7 +131,11 @@
                 'config_key': config_key
             }
             module.ajax('cancelAppointment', payload).then(function(response) {
-                console.log('getAppointmentData response:', response);
+                console.log('cancelAppointment response:', response);
+                if (!response.success) {
+                    alert('Unable to cancel appointment:\n\n' + response.message);
+                    return;
+                }
 
                 // loop through response.data and set values in form
                 for (const [key, value] of Object.entries(response.data)) {
@@ -301,7 +316,7 @@
             };
 
             // Update timezone display
-            $('#tz_display').html('Displaying appointments in the <b>' + timezone + '</b> timezone');
+            $('#tz_display').html('Displaying appointments in the <b>' + timezone + '</b>    timezone');
 
             module.ajax('getAppointmentOptions', $payload).then(function (response) {
                 console.log('getAppointmentOptions response: ', response);
@@ -321,7 +336,8 @@
                         //     return '<span>Select an appointment!<br><i>(you can change timezones if the current times are not correct)</i></span>';
                         //     return data.text;
                         // }
-                        var $result = $('<span><b>' + data.text + '</b> <span class="small" style="color:#888;"><i>(' + data.diff + ')</i></span></span>');
+                        var title = data.title ? '<span><b>' + data.title + '</b></span><br/>' : '';
+                        var $result = $('<div>' + title + '<b>' + data.text + '</b> <span class="small" style="color:#888;"><i>(' + data.diff + ')</i></span></div>');
                         return $result;
                     },
                     placeholder: "Select an appointment...",
@@ -370,15 +386,18 @@
 
         // Update rendering of the appointment container based on slot value
         updateContainer: function(field) {
-            jq_intput = module.data.config[field];
-            slot_id = jq_input.val();
-            jq_container = module.data.config[field]['jq_container'];
+            let jq_input = module.data.config[field].jq_input;
+            let slot_id = jq_input.val();
+            let jq_container = module.data.config[field]['jq_container'];
+
+            console.log('Update Container called for field:', field, 'slot_id:', slot_id, 'container:', jq_container);
 
             if (slot_id) {
                 // If there's a slot value - let's see if we have the nice text for the current timezone
-                slot_text = jq_input.data('slot_text');
-                slot_timezone = jq_input.data('slot_timezone');
-                timezone = module.getTimezone();
+                let slot_text = jq_input.data('slot_text');
+                let slot_timezone = jq_input.data('slot_timezone');
+                let timezone = module.getTimezone();
+                console.log('slot_text:', slot_text, 'slot_timezone:', slot_timezone, 'current timezone:', timezone);
                 if (!slot_text || slot_timezone !== timezone) {
                     // We need to query to refresh this field
                     // result = module.getAppointmentData(field);
@@ -387,9 +406,9 @@
                         "timezone": timezone,
                     }
                     module.ajax('getAppointmentData', payload).then(function(response) {
-                        console.log('getAppointmentData response:', response);
+                        console.log('getAppointmentData response:', response, field, slot_id);
                         if (response.success) {
-                            if (response.data.id != slot_id) {
+                            if (response.data.id !== slot_id) {
                                 // This means the current value doesn't match the saved value.  This shouldn't happen
                                 alert ("This record's current " + field + " value of " + slot_id + "\ndoes not match the saved value of " + response.data.id + ".  This shouldn't happen.");
                                 return false;
