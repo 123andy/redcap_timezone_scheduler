@@ -47,7 +47,8 @@
             {
                 "name": "Timezone Scheduler Admin",
                 "icon": "fas fa-cog",
-                "url": "pages/admin.php"
+                "url": "pages/admin.php",
+                "show-header-and-footer": true
             }
         ],
         "control-center": [
@@ -61,6 +62,11 @@
 
     "project-settings": [
         {
+            "key": "instructions",
+            "name": "<b>Instructions</b><br>This module allows participants to select appointments from a separate REDCap project that acts as an 'Appointment Slot Database'.  In this project, the appointment is stored as a 'slot_id' from the Slot database.  You can optionally store additional information in other fields.<br/><br/>Please see the sidebar link added to the project (only visible to users with design rights)",
+            "type": "descriptive"
+        },
+        {
             "name": "Configuration instance for each reservable appointment slot",
             "key": "instances",
             "type": "sub_settings",
@@ -68,53 +74,59 @@
             "sub_settings": [
                 {
                     "key": "slot-project-id",
-                    "name": "<b>Slot DB Project ID</b><br>Enter the project_id on this server that contains the database of available reservation slots.  The project MUST match the required project format (<i>i.e.</i> use the template to create any new slot projects)",
+                    "name": "<b>Slot DB Project ID</b><br>Enter the project_id on this server that contains the database of available reservation slots.  The project MUST match the required project format (<i>i.e.</i> use the provided XML template to create any new slot projects)",
                     "required": true,
                     "type": "project-id"
                 },
                 {
                     "key": "appt-field",
-                    "name": "<b>Appointment ID Field</b><br>Field in this project that will hold the reserved appointment slot once selected by a user",
+                    "name": "<b>Appointment Field</b><br>This field will display a button to select an available slot or a summary of the scheduled appointment.  The field will store the <code>slot_id</code> of the appointment and should be of type text",
                     "required": true,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
+                    "key": "appt-button-label",
+                    "name": "<b>Appointment Button Label</b><br><i>(Optional)</i> Customize the button label - if blank it will read: <button class='button btn-xs btn-primaryrc'>Select An Appointment</button>",
+                    "required": false,
+                    "type": "text"
+                },
+                {
                     "key": "appt-event-id",
-                    "name": "<b>Appointment ID Field Event</b><br>The event id where the Appointment ID Field above resides.<br/>(<i>If you wish to use the same Appointment Id Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i>)",
+                    "name": "<b>Appointment Field Event</b><br>Select the event where the Appointment Field above resides.<br/><span><sup>*</sup><i>If you wish to use the same Appointment Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i></span>",
                     "required": true,
                     "type": "event-list"
                 },
                 {
                     "key": "appt-datetime-field",
-                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Field in this project to hold the appointment date/time in the <b>server's timezone</b>.  This can be used to automate reminders to the participant using datediff logic.  This field <b>MUST BE VALIDATED AS Y-M-D H:M</b> - any other format may cause errors.  It must also be in the same event as the appointment id field above",
+                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Field in this project to hold the appointment date/time in the <b>server's timezone</b>.  This can be used to automate reminders to the participant using datediff logic.  This field <b>MUST BE VALIDATED AS Y-M-D H:M</b> - any other format may cause errors.  It must also be in the same event above<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
                     "required": false,
                     "type": "field-list",
                     "validation": "datetime"
                 },
                 {
-                    "key": "appt-description-field",
-                    "name": "<b>Appointment Description Field</b><br><i>(Optional)</i> Field in this project (as unvalidated <b>note field</b>).  A description of the appointment will be saved upon reservation and can be customized below:",
-                    "required": false,
-                    "type": "field-list",
-                    "field-type": "text"
-                },
-                {
                     "key": "appt-description-format",
-                    "name": "<b>Appointment Description Format</b><br><i>(Optional)</i> Specify the format (like piping) for the appointment description. This format will control what is stored in the Appointment Description Field specified above.  It can be useful for piping into the body of a reminder to the participant.<br/>`{{title}}` is slot title<br/>`{{date}}` is slot date field (yyyy-mm-dd)<br/>`{{time}}` is slot time field (hh:mm) in 24 hour time<br/>`{{server-time}}` means 'HH:MM am/pm' in server timezone<br/>`{{server-nicedate}}` means 'Sat, Jan 1st, 2025'<br/>`{{server-date}}` means mm/dd/yyyy<br/>`{{server-ts}}` means 'yyyy-mm-dd hh:mm' (timestamp)<br/>`{{server-tza}}` means server timezone abbreviation (e.g. PST, EDT)<br/>`{{client-time}}` means 'HH:MM am/pm' in client timezone<br/>`{{client-nicedate}}` means 'Sat, Jan 1st, 2025'<br/>`{{client-tza}}` means client timezone abbreviation (e.g. PST, CST, EDT)<br/>`{{client-date}}` means mm/dd/yyyy<br/>`{{client-ts}}` means 'yyyy-mm-dd hh:mm' (timestamp)",
+                    "name": "<b>Appointment Description Format</b><br><i>(Optional)</i> Specify the format (like piping) for the appointment description. This format will control what the participant sees after selecting an appointment.  If blank, a default format is used:<div class='p-1 alert alert-secondary'>{title} (#{slot_id})<br/>{client-nicedate} at {client-time} {client-tza}<br/><==({server-time} {server-tza})==></div>The available replacement tags are listed below:<pre style='font-size:smaller;'>{slot_id} => slot db record id<br/>{title} => slot title<br/>{date} => slot date (yyyy-mm-dd)<br/>{time} => slot time (hh:mm) in 24 hour format<br/>{server-time} => 'HH:MM am/pm' in server timezone<br/>{server-nicedate} => 'Sat, Jan 1st, 2025'<br/>{server-date} => date (mm/dd/yyyy)<br/>{server-ts} => server timestamp 'yyyy-mm-dd hh:mm'<br/>{server-tza} => short server timezone abbreviation (e.g. PST, EDT)<br/>{client-time} => 'HH:MM am/pm' in client timezone<br/>{client-nicedate} => 'Sat, Jan 1st, 2025'<br/>{client-tza} => short client timezone abbreviation (e.g. PST, CST, EDT)<br/>{client-date} => 'mm/dd/yyyy'<br/>{client-ts} => client timestamp 'yyyy-mm-dd hh:mm'<br/>{client-tz} => 'America/Los_Angeles'<br/>{diff} => duration until appointment 'x days y hours'</pre><sup>*</sup>Any parts surrounded by <code><==</code> and <code>==></code> will be omitted if the client timezone and the server timezone are the same to reduce redundency",
                     "required": false,
                     "type": "textarea"
                 },
                 {
+                    "key": "appt-description-field",
+                    "name": "<b>Appointment Description Field</b><br><i>(Optional)</i> The appointment description specified above can be saved into a <u>note field</u>.  This is useful for piping into the body of a confirmation or reminder email<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
+                    "required": false,
+                    "type": "field-list",
+                    "field-type": "textarea"
+                },
+                {
                     "key": "appt-participant-formatted-date-field",
-                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone.",
+                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone.<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
                     "key": "slot-record-url-field",
-                    "name": "<b>Slot Record URL</b><br><i>(Optional)</i> This field will contain a URL to the Slot Project for this slot ID.  Useful for an admin to be able to jump to the Slot database.",
+                    "name": "<b>Slot Record URL</b><br><i>(Optional)</i> This field will contain a URL to the Slot DB Project for the reserved appointment.  Useful for an admin to be able to jump to the Slot database.<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
