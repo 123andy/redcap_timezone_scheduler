@@ -75,8 +75,8 @@ Slot Description (e.g. New Patient Visit) (#SLOT_ID#)
 Scheduled: 07/15/2025 at 4:00PM PST (2:00PM CST)
 
 ```
-{{title}} ({{slot_id}})
-Scheduled: {{date}} at {{time}} {{server-tza}} ({{client-time}} {{client-tza}})
+{title} ({slot_id})
+Scheduled: {date} at {time} {server-tza} ({client-time} {client-tza})
 ```
 `title` is slot title
 `date` is slot date field (yyyy-mm-dd)
@@ -94,3 +94,16 @@ Scheduled: {{date}} at {{time}} {{server-tza}} ({{client-time}} {{client-tza}})
 `client-date` means mm/dd/yyyy
 `client-ts` means 'yyyy-mm-dd hh:mm' (timestamp)
 
+
+
+
+
+## Development Notes ##
+
+The javascript container for each appointment gets
+- data-field with the fieldname for the slot input
+
+
+Similarly, given a field_name, you can get the input and the select
+module.data.config.["field"].$input
+module.data.config.["field"].$container

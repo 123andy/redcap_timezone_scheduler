@@ -3,7 +3,9 @@ namespace Stanford\TimezoneScheduler;
 use REDCap;
 use DateTime;
 use DateTimeZone;
+use DateInterval;
 use Exception;
+use Vanderbilt\REDCap\Classes\MyCap\Api\Field\Date;
 
 require_once "classes/TimezoneException.php";
 require_once "emLoggerTrait.php";
@@ -15,9 +17,36 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     public $config = array();   // An array of configuration settings with a concatenate unique key
     public $errors = array();   // A place to store any errors that get written to a setting for display
 
-    const DEFAULT_APPOINTMENT_DESCRIPTION_FORMAT = "{title} (#{slot_id})\n{date} at {time} {server-tza} ({client-time} {client-tza})";
+    const DEFAULT_APPT_TEXT_DATE_FORMAT = "{client-nicedate} at {client-time} {client-tza}";
+    const DEFAULT_APPT_DESCRIPTION_FORMAT = "{title} (#{slot_id})\n{client-nicedate} at {client-time} {client-tza}<==\n({server-time} {server-tza})==>";
     const DEFAULT_APPT_BUTTON_LABEL = "Select An Appointment";
 
+
+    // For client fields, we need many more formats to match REDCap client validation
+    const VALIDATION_CLIENT_CONVERSION_INDEX = [
+        'datetime_ymd' => 'Y-m-d H:i',
+        'datetime_mdy' => 'm-d-Y H:i',
+        'datetime_dmy' => 'd-m-Y H:i',
+        'date_ymd' => 'Y-m-d',
+        'date_mdy' => 'm-d-Y',
+        'date_dmy' => 'd-m-Y',
+        'datetime_seconds_ymd' => 'Y-m-d H:i:s',
+        'datetime_seconds_dmy' => 'd-m-Y H:i:s',
+        'datetime_seconds_mdy' => 'm-d-Y H:i:s'
+    ];
+
+    // For server date, we always use the YMD style
+    const VALIDATION_SERVER_CONVERSION_INDEX = [
+        'datetime_ymd' => 'Y-m-d H:i',
+        'datetime_mdy' => 'Y-m-d H:i',
+        'datetime_dmy' => 'Y-m-d H:i',
+        'date_ymd' => 'Y-m-d',
+        'date_mdy' => 'Y-m-d',
+        'date_dmy' => 'Y-m-d',
+        'datetime_seconds_ymd' => 'Y-m-d H:i:s',
+        'datetime_seconds_dmy' => 'Y-m-d H:i:s',
+        'datetime_seconds_mdy' => 'Y-m-d H:i:s'
+    ];
 
     public function redcap_data_entry_form( int $project_id, $record, string $instrument, int $event_id, $group_id, $repeat_instance ) {
         //$this->emDebug(__FUNCTION__ . " called for project " . implode(",",func_get_args()));
@@ -70,7 +99,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Get the slot_id from the current record
         // TODO -- handle repeat instances?  switch to json?
         $redcap_data = REDCap::getData('array', [$record], [$slot_id_field], $event_id);
-        $this->emDebug("Redcap data for record $record: ", $redcap_data);
+        // $this->emDebug("Redcap data for record $record: ", $redcap_data);
         if (empty($redcap_data) || empty($redcap_data[$record]) || empty($redcap_data[$record][$event_id]) || empty($redcap_data[$record][$event_id][$slot_id_field])) {
             $this->emDebug("No slot_id found for record $record in event $event_id in field $slot_id_field", $redcap_data);
             throw new TimezoneException("No slot_id found for record $record in event $event_id in field $slot_id_field");
@@ -86,61 +115,17 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
     // Given an array of slot records, build the appointment options
-    public function getAppointmentOptions($slots, $client_timezone, $filter_past = true) {
-        $appointments = [];
-        $now_dt = new DateTime("now");
-        $client_dtz = new DateTimeZone($client_timezone);
-        $this->emDebug("Client timezone: ", $client_dtz->getName());
-
-        foreach ($slots as $slot_id => $data) {
-            $date = $data['date'];
-            $time = $data['time'];
-            $title = $data['title'] ?? '';
-            if (empty($date) || empty($time)) {
-                $this->emError("Skipping slot $slot_id due to missing date or time", $data);
-                continue;
-            }
-
-            $server_ts = $date . ' ' . $time;
-            $server_dt = new DateTime($server_ts);
-
-            if ($filter_past) {
-                // Filter out past slots
-                if ($server_dt < $now_dt) {
-                    $this->emDebug("Skipping slot $slot_id because it is in the past: $server_ts");
-                    continue;
-                }
-            }
-
-            // Calculate how far in the future the slot is
-            $diff = $now_dt->diff($server_dt);
-
-            // Convert appointment time to client
-            $client_dt = clone $server_dt;
-            $client_dt->setTimezone($client_dtz);
-            $appointments[] = [
-                'id' => strval($slot_id),
-                'title' => $title,
-                'text' => $client_dt->format('D, M jS @ ga T'),
-                'client_dt' => $client_dt->format('Y-m-d H:i'),
-                'server_dt' => $server_dt->format('Y-m-d H:i'),
-                'diff' => $diff->format('%a days %h hours')
-            ];
-        }
-        return $appointments;
-    }
-
-
-// Given an array of slot records, build the appointment options
-    public function getAppointmentOptions2($config_key, $slots, $client_timezone, $filter_past = true) {
+    public function getAppointmentOptions2($config_key, $slots, $client_timezone, $filter_past_dates = true) {
         $config = $this->get_tz_config($config_key);
         $appointments = [];
         $now_dt = new DateTime("now");
         $client_dtz = new DateTimeZone($client_timezone);
-        $this->emDebug("Client timezone: ", $client_dtz->getName());
+        // $this->emDebug("Client timezone: $client_timezone");
 
-        $description_format = $config['appt-description-format'] ?? self::DEFAULT_APPOINTMENT_DESCRIPTION_FORMAT;
+        $description_format = $config['appt-description-format'] ?? self::DEFAULT_APPT_DESCRIPTION_FORMAT;
+        $text_date_format = $config['appt-text-date-format'] ?? self::DEFAULT_APPT_TEXT_DATE_FORMAT;
 
+        // Load data before doing custom piping
         foreach ($slots as $slot_id => $data) {
             $date = $data['date'];
             $time = $data['time'];
@@ -153,15 +138,15 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $server_ts = $date . ' ' . $time;
             $server_dt = new DateTime($server_ts);
 
-            if ($filter_past) {
-                // Filter out past slots
+            // Filter out past slots
+            if ($filter_past_dates) {
                 if ($server_dt < $now_dt) {
                     $this->emDebug("Skipping slot $slot_id because it is in the past: $server_ts");
                     continue;
                 }
             }
 
-            // Calculate how far in the future the slot is
+            // Calculate interval for how far in the future the slot is
             $diff = $now_dt->diff($server_dt);
 
             // Convert appointment time to client timezone
@@ -188,24 +173,27 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             ];
 
             $appt_description = str_replace( array_keys($codex), array_values($codex), $description_format );
+            $appt_participant_text_date = str_replace( array_keys($codex), array_values($codex), $text_date_format );
+
 
             // Replace anything between <== and ==> with nothing if timezones match
             if ($client_dt->format('T') == $server_dt->format('T')) {
-                $re = '/<==[.\s\w\W]*==>/mU';
+                $re = '/<==[.\s\w\W]*==>/mU';   // This overly complex regex allows for linefeeds between the start and end tokens
                 $appt_description = preg_replace($re, '', $appt_description);
             } else {
                 $appt_description = str_replace( ['<==', '==>'], '', $appt_description);
             }
 
-
             $appointments[] = [
                 'id' => strval($slot_id),
-                'title' => $title,
-                'description' => $appt_description,
-                'text' => $client_dt->format('D, M jS @ ga T'),
-                'client_dt' => $client_dt->format('Y-m-d H:i'),
-                'server_dt' => $server_dt->format('Y-m-d H:i'),
-                'diff' => $diff->format('%a days %h hours')
+                'title' => $appt_participant_text_date,
+                'text' => $appt_description,
+                'participant_text_date' => $appt_participant_text_date,
+                'server_dt' => $server_dt->format('Y-m-d H:i')
+                // 'description' => $appt_description,
+                // 'description' => $client_dt->format('D, M jS \a\t g:ia T'),
+                // 'client_dt' => $client_dt->format('Y-m-d H:i'),
+                //'diff' => $diff->format('%a days %h hours')
             ];
         }
         return $appointments;
@@ -213,7 +201,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
     // Get all available slots as defined by the config_key
     public function getSlots($config_key, $filter_available = true) {
-        $this->emDebug("getSlots called with config_key: $config_key and filter_available:", $filter_available);
+        $this->emDebug("getSlots for $config_key");
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (!$slot_project_id) {
@@ -227,16 +215,16 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Filter as configured
         foreach ($redcap_data as $slot_id => $events) {
             foreach ($events as $event_id => $data) {
-                // Apply project filter
+                // Apply project filter based on slot db field
                 if (!empty($data['project_filter']) && $data['project_filter'] !== $this->getProjectId()) {
-                    $this->emDebug("Skipping slot $slot_id due to project_id filter");
+                    // $this->emDebug("Skipping slot $slot_id due to project_id filter");
                     continue;
                 }
 
                 // Filter already reserved slots based on argument
-                if ($filter_available && !empty($data['source_record_id'])) {
+                if ($filter_available && !empty($data['reserved_ts'])) {
                     // Filter out taken slots
-                    $this->emDebug("Skipping slot $slot_id because it is already taken");
+                    // $this->emDebug("Skipping slot $slot_id because it is already taken");
                     continue;
                 }
 
@@ -301,7 +289,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (!$slot_project_id) {
             $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
-            return false;
+            throw new TimezoneException("Invalid configuration - missing slot project id for config_key: $config_key");
         }
 
         // First get the slot db record
@@ -309,172 +297,177 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
         if (empty($slot)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to clearing slot");
-        } else {
-            // Clear out the reservation fields
-            $slot['source_project_id'] = null;
-            $slot['source_record_id'] = null;
-            $slot['source_field'] = null;
-            $slot['source_event_id'] = null;
-            $slot['source_instance_id'] = null;
-            $slot['source_record_url'] = null;
-            $slot['reserved_ts'] = null;
-            $slot['participant_timezone'] = null;
-            $slot['participant_description'] = null;
-            $slot['slots_complete'] = 0;
-
-            // Save the cleared slot
-            $save = $this->saveSlot($config_key, $slot);
-            if (!$save) {
-                $this->emError("Error clearing slot data for config_key: $config_key, slot:", $slot);
-                return [
-                    "success" => false,
-                    "message" => "Error clearing slot db data for config_key: $config_key, slot_id: $slot_id"
-                ];
-            }
+            throw new TimezoneException("Unable to locate the requested slot - please try again.");
         }
+
+        // Clear out the reservation fields
+        $slot['source_project_id'] = null;
+        $slot['source_record_id'] = null;
+        $slot['source_field'] = null;
+        $slot['source_event_id'] = null;
+        $slot['source_instance_id'] = null;
+        $slot['source_record_url'] = null;
+        $slot['reserved_ts'] = null;
+        $slot['participant_timezone'] = null;
+        $slot['participant_description'] = null;
+        $slot['slots_complete'] = 0;
+
+        // Save the cleared slot
+        $save = $this->saveSlot($config_key, $slot);
+        if (!$save) {
+            $this->emError("Error clearing slot data for config_key: $config_key, slot:", $slot);
+            throw new TimezoneException("Error clearing slot db data for config_key: $config_key, slot_id: $slot_id");
+        }
+        $this->emDebug("Cancelled slot_id $slot_id successfully");
 
         // Now lets clear the current record
         $data = [];
-        $data[$config['appt-field']] = null;
-        if ($config['appt-datetime-field']) $data[$config['appt-datetime-field']] = null;
-        if ($config['appt-participant-formatted-date-field']) $data[$config['appt-participant-formatted-date-field']] = null;
-        if ($config['slot-record-url-field']) $data[$config['slot-record-url-field']] = null;
-        if ($config['slot-record-url-field']) $data[$config['slot-record-url-field']] = null;
+        $keys = ['appt-field', 'appt-datetime-field', 'appt-description-field', 'appt-participant-text-date-field', 'slot-record-url-field'];
+        foreach ($keys as $key) {
+            if (!empty($config[$key])) {
+                $data[$config[$key]] = null;
+            }
+        }
+        // Save Record
         $params = [
             'data' => [$record => [ $event_id => $data ]],
             'overwriteBehavior' => 'overwrite'
         ];
         $q = REDCap::saveData($params);
-        $this->emDebug("REDCap::saveData on clear result: ", $q);
-        $result = [
-            "success" => true,
-            "data" => $data
-        ];
-        return $result;
+        if (!empty($q['errors'])) {
+            $this->emError("Error clearing appointment data to record $record for config_key: $config_key, slot:", $data, $q['errors']);
+            throw new TimezoneException("Failed to clear appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.");
+        }
+        return $data;
     }
 
-    public function reserveSlot($slot_id, $config_key, $timezone, $text, $server_dt, $project_id, $record, $instrument, $event_id, $repeat_instance) {
+    public function reserveSlot($slot_id, $config_key, $timezone, $project_id, $record, $instrument, $event_id, $repeat_instance) {
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
-
-        /*
-            [slot_id] => 13
-                [title] =>
-                [date] => 2025-09-25
-                [time] => 08:00
-                [project_filter] => 38
-                [custom_field_1] =>
-                [filter] =>
-            [source_project_id] =>
-            [source_record_id] =>
-            [source_field] =>
-            [source_event_id] =>
-            [source_instance_id] =>
-            [source_record_url] =>
-            [reserved_ts] =>
-            [participant_timezone] =>
-            [participant_description] =>
-            [slots_complete] => 0
-        */
+        if (empty($slot_project_id) || empty($slot_id)) {
+            throw new TimezoneException("Invalid configuration in Timezone Scheduler module for $config_key with slot $slot_id");
+        }
 
         // Lock Slot
         $lock_name = "tzs_slot_" . $slot_id . "_proj_" . $slot_project_id;
         if (!$this->getLock($lock_name)) {
             $this->emError("Unable to obtain lock for $lock_name");
-            return [
-                "success" => false,
-                "message" => "Unable to obtain a lock for the requested slot - please try again."
-            ];
-        } else {
-            $this->emDebug("Lock obtained for $lock_name");
+            throw new TimezoneException("Unable to obtain a lock for the requested slot - please try again.");
         }
 
         // First get the slot record
         $slot = $this->getSlot($config_key, $slot_id);
-        $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
+        // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
         if (empty($slot)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to reservation");
             $this->releaseLock($lock_name);
-            return [
-                "success" => false,
-                "message" => "Unable to locate the requested slot - please try again."
-            ];
+            throw new TimezoneException("Unable to locate the requested slot - please try again.");
         }
 
-        // Load Slot
         $result = [];
-        if ($slot['reserved_ts']) {
+        if (!empty($slot['reserved_ts'])) {
             $this->emDebug("Slot $slot_id is already reserved");
-            $result = [
-                "success" => false,
-                "message" => "Slot is already reserved - please try again."
-            ];
-        } else {
-            // Find description for slot and timezone
-            $results = $this->getAppointmentOptions2($config_key, [$slot_id => $slot], $timezone);
-            $appointment = $results[0] ?? null;
+            $this->releaseLock($lock_name);
+            throw new TimezoneException("The requested slot is no longer available.  Please try again.");
+        }
+        $this->emDebug("Slot $slot_id is available, proceeding with reservation");
 
-            if (empty($appointment)) {
-                $this->emError("Unable to locate appointment data for slot_id $slot_id in timezone $timezone");
+        // Find description for slot and timezone
+        $options = $this->getAppointmentOptions2($config_key, [$slot_id => $slot], $timezone);
+        $appointment = $options[0] ?? null;
+
+        if (empty($appointment)) {
+            $this->emError("Unable to locate appointment data for slot_id $slot_id in timezone $timezone");
+            $this->releaseLock($lock_name);
+            throw new TimezoneException("Unable to locate appointment data for the requested slot - please try again.");
+        }
+
+        // Reserve slot
+        $slot['reserved_ts'] = date('Y-m-d H:i:s');
+        $slot['source_project_id'] = $project_id;
+        $slot['source_record_id'] = $record;
+        $slot['source_field'] = $config['appt-field'] ?? '';
+        $slot['source_event_id'] = $event_id;
+        $slot['source_instance_id'] = $repeat_instance;
+        // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=1&page=test_form&event_id=88&instance=1
+        // TODO replace with a EM-mediated redirect to get rid of the version number...
+        $slot['source_record_url'] = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION .
+            "/DataEntry/index.php?pid=$project_id&id=$record&page=$instrument&event_id=$event_id&instance=$repeat_instance";
+        $slot['participant_timezone'] = $timezone;
+        $slot['participant_description'] = $appointment['text'] ?? 'Unable to parse appointment';
+        $slot['slots_complete'] = 2;
+
+        if (! $this->saveSlot($config_key, $slot)) {
+            $this->emError("Error reserving slot data for config_key: $config_key, slot:", $slot);
+            $this->releaseLock($lock_name);
+            throw new TimezoneException("Failed to reserve the requested slot - please try again.");
+        }
+
+        // Lets also update the current record so that the slot_id is saved here as well
+        $data = [];
+        $data[$config['appt-field']] = $slot_id;
+
+        // Check for the datetime field and convert the appointment time to the proper format
+        $client_date = null;
+        $adfield = $config['appt-datetime-field'] ?? null;
+        if ($adfield) {
+            $date_validation_type = $this->getProject()->getREDCapProjectObject()->metadata[$adfield]['element_validation_type'];
+
+            $default_format = 'Y-m-d H:i'; // Default to ymd
+
+            if (isset(self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type])) {
+                $server_format = self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type];
+                $client_format = self::VALIDATION_CLIENT_CONVERSION_INDEX[$date_validation_type];
+            }
+
+            // $this->emDebug("Converting appointment server_dt " . $appointment['server_dt'] . " to format $format based on validation type $date_validation_type");
+
+            $server_dt = DateTime::createFromFormat('Y-m-d H:i', $appointment['server_dt']);
+
+            if( !$server_dt ) {
+                $this->emError("Unable to convert appointment server_dt " . $appointment['server_dt'] . " to DateTime object");
                 $this->releaseLock($lock_name);
-                return [
-                    "success" => false,
-                    "message" => "Unable to locate the requested slot in the selected timezone - please try again."
-                ];
+                throw new TimezoneException("Failed to convert the appointment date/time to the proper format - please try again.");
             }
 
-            // Reserve slot
-            $slot['source_project_id'] = $project_id;
-            $slot['source_record_id'] = $record;
-            $slot['source_field'] = $config['appt-field'] ?? '';
-            $slot['source_event_id'] = $event_id;
-            $slot['source_instance_id'] = $repeat_instance;
-            // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=1&page=test_form&event_id=88&instance=1
-            // TODO replace with a EM-mediated redirect to get rid of the version number...
-            $slot['source_record_url'] = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION .
-                "/DataEntry/index.php?pid=$project_id&id=$record&page=$instrument&event_id=$event_id&instance=$repeat_instance";
-            $slot['reserved_ts'] = date('Y-m-d H:i:s');
-            $slot['participant_timezone'] = $timezone;
-            $slot['participant_description'] = $appointment['description'] ?? $appointment['text'] ?? 'Unable to parse appointment';
-            // $slot['participant_description'] = $text;
-            $slot['slots_complete'] = 2;
+            $server_date = $server_dt->format($server_format ?? $default_format);
+            $client_date = $server_dt->format($client_format ?? $default_format);
+            $data[$adfield] = $server_date;
+        }
 
-            $save = $this->saveSlot($config_key, $slot);
-            if ($save) {
-                // Lets also update the current record so that the slot_id is saved here as well
-                $data = [];
-                $data[$config['appt-field']] = $slot_id;
-                if ($config['appt-datetime-field']) {
-                    $data[$config['appt-datetime-field']] = $server_dt;
-                }
-                if ($config['appt-participant-formatted-date-field']) {
-                    $data[$config['appt-participant-formatted-date-field']] = $text;
-                }
-                // if ($config['appt-description-field']) {
-                //     $data[$config['appt-description-field']] = $description;
-                // }
-                if ($config['slot-record-url-field']) {
-                    //https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
-                    $data[$config['slot-record-url-field']] = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION . '/DataEntry/index.php?pid=' . $slot_project_id . '&id=' . $slot_id . '&page=slots';
-                }
+        // TODO: Consider removing this option as it just adds complication with little benefit
+        if ($config['appt-participant-text-date-field']) {
+            $data[$config['appt-participant-text-date-field']] = $appointment['participant_text_date'] ?? 'Unable to parse text date';
+        }
+        if ($config['appt-description-field']) {
+            $data[$config['appt-description-field']] = $appointment['text'] ?? 'Unable to parse appointment';
+        }
 
-                $q = REDCap::saveData('array', [$record => [ $event_id => $data ]]);
-                $this->emDebug("REDCap::saveData result: ", $q);
-                $result = [
-                    "success" => true,
-                    "data" => $data
-                ];
-            } else {
-                $result = [
-                    "success" => false,
-                    "message" => "Failed to reserve slot - please try again.",
-                ];
-            }
+        // TODO: Consider removing this url as well and just add a plugin hook to show the slot details
+        if ($config['slot-record-url-field']) {
+            // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
+            $data[$config['slot-record-url-field']] = APP_PATH_WEBROOT_FULL . 'redcap_v' .
+                REDCAP_VERSION . '/DataEntry/index.php?pid=' . $slot_project_id .
+                '&id=' . $slot_id . '&page=slots';
+        }
+
+        // Save the record
+        $q = REDCap::saveData('array', [$record => [ $event_id => $data ]]);
+        if (!empty($q['errors'])) {
+            $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q['errors']);
+            $this->releaseLock($lock_name);
+            throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.");
         }
 
         // Release Lock
         $this->releaseLock($lock_name);
-        return $result;
+
+        // Prior to releasing data to front end, we need to update the date field to the client format:
+        if ($client_date && $adfield) {
+            $data[$adfield] = $client_date;
+        }
+        // Return the current record's data so it can be updated on the frontend
+        return $data;
     }
 
 
@@ -517,8 +510,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     ];
                     break;
                 case "getAppointmentOptions":
-                    // GOOD: Return just the available appointment slots
-                    $this->emDebug("getAppointmentOptions called with payload: ", $payload);
                     $config_key = $payload['config_key'] ?? null;
                     $timezone = $payload['timezone'] ?? null;
                     if (empty($timezone)) {
@@ -567,6 +558,30 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         ];
                     }
                     break;
+                case "addToCalendar":
+                    $config_key = $payload['config_key'];
+                    $slot_id = $this->getCurrentAppointmentId($config_key, $record, $event_id, $repeat_instance);
+
+                    // Make sure we have a slot_id
+                    if (!$slot_id) {
+                        $this->emDebug("No slot_id found for record $record with $config_key");
+                        throw new TimezoneException("No appointment id found for record $record with config $config_key");
+                    }
+
+                    $slot = $this->getSlot($config_key, $slot_id);
+                    if (empty($slot)) {
+                        $this->emError("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
+                        throw new TimezoneException("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
+                    }
+
+                    $add_to_calendar_config = $this->slotToCalendarConfig($slot);
+                    $result = [
+                        "success" => true,
+                        "data" => [
+                            "config" => $add_to_calendar_config
+                        ]
+                    ];
+                    break;
                 case "getAppointmentData":
                     // Called when an appointment field contains a slot_id and we need to return the appointment data for that slot
                     $config_key = $payload['config_key'];
@@ -574,44 +589,46 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
                     // Make sure we have a slot_id
                     if (!$slot_id) {
-                        $result = [
-                            "success" => false,
-                            "message" => "No appointment saved for this record"
-                        ];
                         $this->emDebug("No slot_id found for record $record with $config_key");
-                    } else {
-                        $this->emDebug("Found existing slot_id: $slot_id for record $record");
-                        $timezone = $payload['timezone'] ?? date_default_timezone_get();
-                        $result = [];
-                        // Now get the slot record from the slot db
-                        $slot = $this->getSlot($config_key, $slot_id);
-                        if (empty($slot)) {
-                            throw new TimezoneException("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
-                        } else {
-                            $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
-                            // Sanity check - make sure the slot is actually reserved for this record
-                            if ($slot['source_record_id'] != $record || $slot['source_event_id'] != $event_id || $slot['source_instance_id'] != $repeat_instance) {
-                                $this->emError("Record $record has appointment slot_id saved ($slot_id), but that slot's source data does not match.");
-                                // For now, I'm going to keep going, but perhaps we should throw a TimezoneException here...
-                            }
-
-                            $result = [
-                                "success" => true,
-                                "data" => [
-                                    "id" => $slot_id,
-                                    "description" => $slot['participant_description'] ?? "Missing description for slot $slot_id",
-                                    "timezone" => $slot['participant_timezone']
-                                ]
-                            ];
-
-                            // $appointments = $this->getAppointmentOptions2($config_key, [$slot_id => $slot], $timezone, false);
-                            // $this->emDebug("Appointment data for slot_id $slot_id: ", $appointments);
-                            // $result = [
-                            //     "success" => true,
-                            //     "data" => $appointments[0] ?? null
-                            // ];
-                        }
+                        throw new TimezoneException("No appointment id found for record $record with config $config_key");
                     }
+
+                    $this->emDebug("Found existing slot_id: $slot_id for record $record");
+                    $timezone = $payload['timezone'] ?? date_default_timezone_get();
+                    $result = [];
+                    // Now get the slot record from the slot db
+                    $slot = $this->getSlot($config_key, $slot_id);
+                    if (empty($slot)) {
+                        $this->emError("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
+                        throw new TimezoneException("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
+                    }
+                    // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
+
+                    // Sanity check - make sure the slot's reservation details match that of this appointment record...
+                    if ($slot['source_record_id'] != $record || $slot['source_event_id'] != $event_id || $slot['source_instance_id'] != $repeat_instance) {
+                        $this->emError("Record $record has appointment slot_id saved ($slot_id), but that slot's source data does not match.");
+                        // For now, I'm going to keep going, but perhaps we should throw a TimezoneException here...
+                    }
+
+                    $add_to_calendar_config = $this->slotToCalendarConfig($slot);
+
+                    $result = [
+                        "success" => true,
+                        "data" => [
+                            "id" => $slot_id,
+                            "text" => $slot['participant_description'] ?? "Missing description for slot $slot_id",
+                            "timezone" => $slot['participant_timezone'],
+                            "add_to_calendar_config" => $add_to_calendar_config
+                        ]
+                    ];
+
+                    // $appointments = $this->getAppointmentOptions2($config_key, [$slot_id => $slot], $timezone, false);
+                    // $this->emDebug("Appointment data for slot_id $slot_id: ", $appointments);
+                    // $result = [
+                    //     "success" => true,
+                    //     "data" => $appointments[0] ?? null
+                    // ];
+
                     break;
                 // case "saveAppointment":
                 //     // Save an appointment after selection
@@ -621,15 +638,16 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
                 case "reserveSlot":
                     // Reserve a specific appointment slot
-                    $this->emDebug("reserveSlot called with payload: ", $payload);
                     $slot_id = $payload['slot_id'];
                     $config_key = $payload['config_key'];
                     $timezone = $payload['timezone'] ?? null;
 
                     // TODO: I think text and server+dt are redundant since they can be derived from the slot_id and timezone
-                    $text = $payload['text'] ?? null;
-                    $server_dt = $payload['server_dt'] ?? null;
-                    $result = $this->reserveSlot($slot_id, $config_key, $timezone, $text, $server_dt, $project_id, $record, $instrument, $event_id, $repeat_instance);
+                    $data = $this->reserveSlot($slot_id, $config_key, $timezone, $project_id, $record, $instrument, $event_id, $repeat_instance);
+                    $result = [
+                        "success" => true,
+                        "data" => $data
+                    ];
                     break;
 
                 case "selectSlot":
@@ -653,11 +671,11 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     $this->emDebug("cancelAppointment called with payload: ", $payload);
                     $config_key = $payload['config_key'] ?? null;
                     $slot_id = $payload['slot_id'] ?? null;
-                    $result = $this->cancelAppointment($slot_id, $config_key, $record, $instrument, $event_id, $repeat_instance);
-                    // $result = [
-                    //     "success"=>true,
-                    //     "user_id"=>$user_id
-                    // ];
+                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $instrument, $event_id, $repeat_instance);
+                    $result = [
+                        "success" => true,
+                        "data" => $data
+                    ];
                     break;
                 default:
                     // Action not defined
@@ -681,16 +699,44 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $result;
     }
 
+    public function slotToCalendarConfig($slot) {
+        $this->emDebug("slotToCalendarConfig called with slot: ", $slot);
+        if (empty($slot)) return null;
+
+        $server_dt = new DateTime($slot['date'] . ' ' . $slot['time']);
+        $server_dt_end = clone $server_dt;
+        $server_dt_end->add(new DateInterval('PT1H')); // Default to 1 hour duration
+        $add_to_calendar_config = [
+            // "name" => $slot['title'] ?? "Appointment",
+            "name" => "Test",
+            "description" => "description placeholder",
+            "startDate" => $server_dt->format('Y-m-d'),
+            "startTime" => $server_dt->format('H:i'),
+            "endTime" => $server_dt_end->format('H:i'),
+            "timeZone" => $server_dt->getTimezone()->getName(),
+            "debug" => true
+        ];
+
+        // name: "[Reminder] Test the Add to Calendar Button",
+        // description: "Check out the maybe easiest way to include Add to Calendar Buttons to your web projects:[br]→ [url]https://add-to-calendar-button.com/|Click here![/url]",
+        // startDate: "2025-09-23",
+        // startTime: "10:15",
+        // endTime: "23:30",
+        // options: ["Google", "iCal"],
+        // timeZone: "America/Los_Angeles"
+        return $add_to_calendar_config;
+    }
+
     // Inject HTML for timezone selector functionality
     public function injectHTML() {
         ?>
             <!-- Button to trigger appointment modal -->
-            <button type="button" id="tz_selector_button" class="btn-primaryrc btn btn-xs float-right" data-toggle="modal" data-target="#tz_select_modal">
+            <!-- <button type="button" id="tz_selector_button" class="btn-primaryrc btn btn-xs float-right" data-toggle="modal" data-target="#tz_select_modal">
                 Edit Timezone
-            </button>
-            <button type="button" id="tz_selector_cancel" class="btn-danger btn btn-xs float-right">
+            </button> -->
+            <!-- <button type="button" id="tz_selector_cancel" class="btn-danger btn btn-xs float-right">
                 Cancel
-            </button>
+            </button> -->
 
             <!-- Template container for appointment slot id field -->
             <div id="tz_select_container_template" class="tz_select_container" style="display:none;">
@@ -703,15 +749,18 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     <div class="form-control selected-appointment" style="font-size: 13px;">
                         <i class="fas fa-calendar"></i> <span class="appt-text">PLACEHOLDER</span></div>
                     <div class="pt-1">
-                        <span style="font-size: 12px; color: #888;" class="slot-id"></span>
+                        <div class='add-container'>
+                        </div>
                         <button type="button" data-action="cancel-appt" class="btn-secondary btn btn-xs float-right">
-                            <i class="fas fa-times"></i> Cancel/Reschedule Appt
+                            <i class="fas fa-times"></i> Cancel Appt
                         </button>
+                        <div style="clear:both;"></div>
                     </div>
                 </div>
             </div>
 
-            <div id="tz_select_appt_modal" class="modal fade" tabindex="-1" role="dialog">
+            <!-- Modal for selecting appointment -->
+            <div id="tz_select_appt_modal" aria-modal="true" class="modal fade" tabindex="-1" role="dialog">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -728,39 +777,36 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button id='tz_select_edit_timezone_button' type="button" class="btn-secondary btn btn-xs me-auto" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
+                            <button id='tz_select_edit_timezone_button' type="button" class="btn-success btn btn-sm me-auto" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
                                 <i class="fas fa-edit"></i> Change Timezone
                             </button>
-                            <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Close</button>
-                            <button id="tz_select_save_button" type="button" class="btn btn-primaryrc btn-xs">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                            <button id="tz_select_save_button" type="button" class="btn btn-primaryrc btn-sm">Save</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="tz_select_timezone_modal" class="modal fade" tabindex="-1" role="dialog">
+            <!-- Modal for selecting timezone -->
+            <div id="tz_select_timezone_modal" aria-modal="true" class="modal fade" tabindex="-1" role="dialog">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Select Timezone</h5>
-                            <!--button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button-->
                         </div>
                         <div class="modal-body" style="width:100%;">
-                            <p>Select the timezone to use when viewing appointments:</p>
+                            <p>Select the timezone to use when viewing available appointments:</p>
                             <select id="tz_select_timezone" class="form-control"></select>
-                            <!--button type="button" class="btn btn-secondary" data-dismiss="modal">Use Browser Default</button-->
                         </div>
                         <div class="modal-footer">
-                            <!--button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button-->
-                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_save_timezone_button" type="button" class="btn btn-primary btn-xs">Set Timezone</button>
+                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_clear_timezone_button" type="button" class="btn btn-success btn-sm me-auto"><i class="fas fa-globe"></i> Auto Detect Timezone</button>
+                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_save_timezone_button" type="button" class="btn btn-primary btn-sm">Set Timezone</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="tz_select_confirm_modal" class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+            <div id="tz_select_confirm_modal" aria-modal="true" class="modal fade" id="confirmModal" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">
                     <div class="modal-header">
@@ -768,7 +814,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
                     </div>
                     <div class="modal-body">
-                        Are you sure?
+                        Template Notification
                     </div>
                     <div class="modal-footer">
                         <button type="button" data-action="cancel" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" >Go Back</button>
@@ -787,6 +833,23 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     color: white;
                 }
 
+                /** format the selected appointment */
+                #tz_select_appt_modal .tz-selection {
+                    margin-top:2px;
+                    font-weight:600;
+                }
+
+                /** hide the input for the appointment field */
+                .tz_data_wrapper [data-kind="field-value"] {
+                    display:none;
+                }
+
+                /** make the clear x red */
+                #tz_select_appt_modal .select2-container--default .select2-selection--multiple .select2-selection__clear {
+                    color: #e74c3c;
+                }
+
+                /** add a line border between dates in the select2 dropdown */
                 li.select2-results__option {
                     border-top: 1px solid #eee;
                 }
@@ -913,12 +976,18 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $cmds = [];
         $cmds[] = "const module = " . $this->getJavascriptModuleObjectName();
         if (!empty($data)) $cmds[] = "module.data = " . json_encode($data);
-        if ($this->emLoggerDebug) $cmds[] = "module.debugger=true";
+        if ($this->emLoggerDebugMode()) $cmds[] = "module.debugger=true";
         if (!empty($init_method)) $cmds[] = "module.afterRender(module." . $init_method . ")";
 
         // $this->emDebug($cmds);
         $spacer=";\n".str_repeat(" ",16);
         ?>
+        <!--
+         Load Add to Calendar Button library
+         Copied to EM on 9/20/25 from https://cdn.jsdelivr.net/npm/add-to-calendar-button
+         Submit PR to request update
+        -->
+        <!-- <script src="<?=$this->getUrl("assets/add-to-calendar-button.js",true)?>"></script> -->
         <script src="<?=$this->getUrl("assets/jsmo.js",true)?>"></script>
         <script>
             (function() {
@@ -939,30 +1008,5 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     public function redcap_save_record( int $project_id, $record, string $instrument, int $event_id, $group_id, $survey_hash, $response_id, $repeat_instance ) {
        $this->emDebug(__FUNCTION__ . " called for project $project_id");
     }
-
-
-    // NOT USED
-    public function formatAppointments(array $appointments, string $timezone): array {
-        $this->emDebug("formatAppointments called with timezone: ", $timezone);
-
-        $formatted = [];
-        $client_tz = new DateTimeZone($timezone);
-        foreach ($appointments as $appointment) {
-            $server_dt = new DateTime($appointment['date'] . " " . $appointment['time']);
-            $client_dt = new DateTime($appointment['date'] . " " . $appointment['time'], $client_tz);
-
-            $formatted[] = [
-                'id' => $appointment['slot_id'],
-                'text' => $server_dt->format('D, M jS ga (Y-m-d H:i T)'),
-                'tz' => $timezone,
-                'server_dt' => $server_dt->format('Y-m-d H:i'),
-                'client_dt' => $client_dt->format('Y-m-d H:i')
-            ];
-        }
-
-        return $formatted;
-    }
-
-
 
 }

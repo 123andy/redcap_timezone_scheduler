@@ -2,16 +2,54 @@
 ;{
     // Define the jsmo in IIFE so we can reference object in our new function methods
     const module = ExternalModules.Stanford.TimezoneScheduler;
-    // console.log(module);
-
-    // A global place to store links to the timezone select2 instances
-    var timezoneSelect2s = [];
 
     const cookie_name = 'tz_scheduler_client_timezone';
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/add-to-calendar-button';
+    script.setAttribute('async', true);
+    script.setAttribute('defer', true);
+    script.onload = function() {
+        // The script is loaded, safe to call atcb_action or initialize button
+        module.debug("add-to-calendar-button library loaded");
+        module.init_atcb();
+    };
+    document.head.appendChild(script);
 
     // Extend the official JSMO with new methods for this EM
     Object.assign(module, {
 
+        init_atcb: function() {
+            return false;
+            // Initialize the add-to-calendar-button
+            $atcb = $('.add-container:visible');
+            console.log("Found " + $atcb.length + " visible add-container elements");
+
+            $atcb.each(function() {
+                $btn = $('<add-to-calendar-button name="[Reminder] Test the Add to Calendar Button" description="Check out the maybe easiest way to include Add to Calendar Buttons to your web projects:[br]→ [url]https://add-to-calendar-button.com/|Click here![/url]" startDate="2025-09-23" startTime="10:15" endTime="23:30" options=\'["Google", "iCal"]\' timeZone="America/Los_Angeles"/>');
+
+                $(this).append($btn);
+                // var $btn = $(this);
+                // $btn.on('click', function() {
+                //     module.debug("Add to calendar button clicked");
+                //     // Call the atcb_action function
+                //     atcb_action($btn);
+                // });
+                module.debug("Initializing add-to-calendar-button:", $btn);
+            });
+
+        // $btn = $('add-to-calendar-button');
+        // if ($btn.length > 0) {
+        //     module.debug("atcb_init called from script onload");
+        //     atcb_init();
+        // } else {
+        //     module.debug("No add-to-calendar-button elements found on page");
+        // }
+
+
+        },
+
+        // Debug wrapper for easy toggle
         debug: function(...args) {
             if (module.debugger) {
                 const caller = this.debug.caller.name ? this.debug.caller.name : 'unknown';
@@ -38,7 +76,7 @@
                 $td = $input.closest('td.data');
 
                 // Hide the current contents of the slot-id field
-                $td.children().wrapAll('<div class="tz_hidden hide bg-danger"></div>');
+                $td.children().wrapAll('<div class="tz_data_wrapper"></div>');
 
                 // Render an error message if the survey/form is on a not-saved record_id
                 if(module.data.record_id === null) {
@@ -55,7 +93,7 @@
                 }
 
                 // Clone the container template and insert into the dom
-                var $ct = $('#tz_select_container_template').clone()
+                var $container = $('#tz_select_container_template').clone()
                 .css({'display':'inline'})
                 .attr('id', 'tz_select_container_' + field)
                 // .data('config_key', config_key)
@@ -63,18 +101,17 @@
                 .prependTo($td);
 
                 // get the select element inside the template
-                var $sel = $('select', $ct)
+                var $select = $('select', $container)
                 .attr('id', 'tz_select_' + field);
 
                 module.data.config[field]['$input'] = $input;
-                module.data.config[field]['jq_container'] = $ct;
-                module.data.config[field]['jq_select'] = $sel;
+                module.data.config[field]['$container'] = $container;
+                // module.data.config[field]['$select'] = $select;
 
                 // customize the select button if specified
                 if (config['appt-button-label']) {
-                    $('button[data-action="select-appt"] .button-text', $ct).html(config['appt-button-label']);
+                    $('button[data-action="select-appt"] .button-text', $container).html(config['appt-button-label']);
                 }
-
 
                 // Make sure the container is showing the right content
                 module.updateContainer(field);
@@ -89,29 +126,35 @@
                         module.cancelAppointment(field);
                     }
                 });
-                // if(confirm('You are about to cancel your appointment.  If this is allowed, you will be able to select a new appointment time.\n\nClick OK to continue.')) {
-                    // module.cancelAppointment(field);
-                // }
             });
+
+            // // Add handler for add to calendar clicks
+            // $('#questiontable').on('click', 'button[data-action="add-to-calendar"]', function() {
+            //     var field = $(this).closest('.tz_select_container').data('field');
+            //     //$input = module.data.config[field]['$input'];
+            //     module.addToCalendar(field);
+            // });
 
             // Add handler for schedule click next to slot button
             $('#questiontable').on('click', 'button[data-action="select-appt"]', function() {
-                module.debug('Select Button Click', $(this));
+                // module.debug('Select Button Click', $(this));
+                // Set the field context to the select container:
                 var field = $(this).closest('.tz_select_container').data('field');
-                module.debug('Field:', field);
-                module.setAppointmentField(field);
+                $('#tz_select_appt').data('field', field);
+                // module.debug('Field:', field);
                 module.refreshAppointmentSelector();
             });
 
             // Save Appointment Button
             $('#tz_select_save_button').on('click', function() {
-                module.saveAppointmentButton();
+                // module.debug('Save Button Clicked');
+                module.saveAppointment();
             });
 
 
             // When timezone edit button is pressed from appointment scheduler, load the timezones
             $('#tz_select_edit_timezone_button').on('click', function() {
-                module.debug('Edit Timezone Button Clicked');
+                // module.debug('Edit Timezone Button Clicked');
                 module.refreshTimezoneSelector();
             });
 
@@ -124,9 +167,71 @@
                 module.refreshAppointmentSelector();
             });
 
+            // When the timezone is updated, we save and refresh the appointment selector
+            $('#tz_select_clear_timezone_button').on('click', function() {
+                tz = $('#tz_select_timezone');
+                module.debug('Timezone Clear Button Clicked', tz.val());
+                module.clearTimezone();
+                module.refreshAppointmentSelector();
+            });
+
         },
 
+        addToCalendar: function(field) {
+            // $input = module.data.config[field]['$input'];
+            // module.debug('Field:', field, '$input:', $input);
+            // const slot_id = $input.val();
+            const config_key = module.data.config[field]['config_key'];
+            payload = {
+                'config_key': config_key,
+                // 'timezone': module.getTimezone()
+            }
+            module.ajax('addToCalendar', payload).then(function(response) {
+                module.debug('addToCalendar response:', response);
+                if (!response.success || !response.data || !response.data.config) {
+                    module.debug("Failed to obtain addToCalendar config:", response);
+                    module.notify("Error", "Failed to obtain calendar information:\n\n" + response.message);
+                    return;
+                }
 
+                $button = $('button[data-action="add-to-calendar"]', module.data.config[field]['$container']);
+                if ($button.length === 0) {
+                    module.debug("No add-to-calendar button found for field:", field);
+                    return;
+                }
+
+                const config = response.data.config;
+                const button = $button[0];
+                module.debug("addToCalendar Config:", config, button);
+
+                if (button) {
+                    button.addEventListener('click', () => atcb_action(config, button));
+                }
+
+                button.trigger('click');
+
+
+            }).catch(function (err) {
+                console.error('Error fetching appointment data:', err);
+            });
+
+                // slot_id = $input.val();
+                // slot_text = $input.data('slot_text');
+                // slot_timezone = $input.data('slot_timezone');
+                // module.debug('Add to Calendar Field:', field, slot_id, slot_text, slot_timezone);
+
+                // const config = {
+                //     name: "[Reminder] Test the Add to Calendar Button",
+                //     description: "Check out the maybe easiest way to include Add to Calendar Buttons to your web projects:[br]→ [url]https://add-to-calendar-button.com/|Click here![/url]",
+                //     startDate: "2025-09-23",
+                //     startTime: "10:15",
+                //     endTime: "23:30",
+                //     options: ["Google", "iCal"],
+                //     timeZone: "America/Los_Angeles"
+                // };
+                // atcb_action(config, this);
+
+        },
 
         // Cancel Appointment
         cancelAppointment: function(field) {
@@ -149,13 +254,10 @@
                     return;
                 }
 
-                // loop through response.data and set values in form
-                for (const [key, value] of Object.entries(response.data)) {
-                    const input = $('input[name="' + key + '"]');
-                    if (input) {
-                        input.val(value).trigger('change');
-                    }
-                }
+                // Update the form fields with returned data
+                module.applyDataToForm(response.data);
+
+                // Clear out the data attributes for the select so it refreshes properly
                 $input.data('slot_text', null);
                 $input.data('slot_timezone', null);
 
@@ -170,45 +272,55 @@
             });
         },
 
-        // Handle when new appointment is saved from the modal ui
-        saveAppointmentButton: function() {
-            tz_select_appt = $('#tz_select_appt');
-            module.debug("Appointment SAVE clicked ", tz_select_appt.val(), tz_select_appt.data('field'), tz_select_appt.select2('data'));
 
-            slot_id = tz_select_appt.val();
+        applyDataToForm: function(data) {
+            module.debug("applyDataToForm called with data:", data);
+            for (const [key, value] of Object.entries(data)) {
+                const e = $('input[name="' + key + '"], textarea[name="' + key + '"]');
+                if (e.length > 1) {
+                    module.debug("Multiple inputs found for key:", key, e);
+                } else if (e.length === 0) {
+                    module.debug("No input found for key:", key);
+                }
+                e.val(value).trigger('change');
+            };
+        },
+
+
+        // Handle when new appointment is saved from the modal ui
+        saveAppointment: function() {
+            $tz_select_appt = $('#tz_select_appt');
+            module.debug("Appointment SAVE clicked ",
+                $tz_select_appt.val(),
+                $tz_select_appt.data('field'),
+                $tz_select_appt.select2('data')[0]
+            );
+
+            slot_id = $tz_select_appt.val();
             if (!slot_id) {
-                alert('Please select an appointment before saving.  To cancel an appointment (if allowed) use the button on the entry form');
+                module.notify('Invalid Selection', 'Please select an available appointment before saving.');
                 return;
             }
 
-            field = tz_select_appt.data('field');
+            field = $tz_select_appt.data('field');
             config_key = module.data.config[field]['config_key'];
 
             // Get all the option label data to send to the server
-            let option_selected = tz_select_appt.select2('data')[0];
+            // let option_selected = $tz_select_appt.select2('data')[0];
             // module.debug("Option Data:", option_selected);
 
             payload = {
                 'slot_id': slot_id,
                 'config_key': config_key,
-                'timezone': module.getTimezone(),
-                'text': option_selected['text'],
-                'server_dt': option_selected['server_dt']
+                'timezone': module.getTimezone()
             };
             module.ajax('reserveSlot', payload).then(function (response) {
+                module.debug('reserveSlot response:', response);
                 if (response.success) {
                     module.debug("Slot reserved successfully", response.data);
-                    // TODO: Set data
-                    // loop through response.data and set values in form
-                    for (const [key, value] of Object.entries(response.data)) {
-                        const input = $('input[name="' + key + '"]');
-                        if (input) {
-                            input.val(value).trigger('change');
-                        }
-                    }
+                    module.applyDataToForm(response.data);
 
                     // Close the modal
-                    module.debug("About to hide modal", $('#tz_select_appt_modal'));
                     $('#tz_select_appt_modal').modal('hide');
                     module.debug("Modal closed");
 
@@ -225,118 +337,12 @@
         },
 
 
-        getTimezone: function() {
-            // First, see if the timezone cookie exists
-            var tz = null;
-            var arr = document.cookie.split('; ');
-            for (var i = 0; i < arr.length; i++) {
-                var cookie = arr[i];
-                if (cookie.substring(0, cookie_name.length) == cookie_name) {
-                    tz = cookie.substring(cookie_name.length + 1);
-                    // module.debug('Found timezone cookie:' + cookie_name, tz);
-                    break;
-                }
-            }
-
-            if (!tz) {
-                tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                module.debug('No timezone cookie (' + cookie_name + ') found, using default:', tz);
-            }
-
-            return tz;
-        },
-
-        setTimezone: function(tz) {
-            document.cookie = cookie_name + '=' + tz + '; path=/;SameSite=Strict';
-        },
-
-        // Called upon change of a select2 to verify the appointment is reserved
-        saveAppointment: function(field_name, slot_id, timezone) {
-            module.debug("Saving appointment for field:", field_name, "and slot:", slot_id);
-            // Here you would typically make an AJAX call to save the appointment
-            module.ajax('saveAppointment', {
-                field_name: field_name,
-                slot_id: slot_id,
-                timezone: timezone
-            }).then(function(response) {
-                module.debug("Appointment saved successfully:", response);
-            }).catch(function(err) {
-                console.error("Error saving appointment:", err);
-            });
-        },
-
-        //TODO - current in code for updateContainer
-        getAppointmentData: function(field) {
-            var config_key = module.data.config[field]['config_key'];
-            var timezone = module.getTimezone();
-            var payload = {
-                "config_key": config_key,
-                "timezone": timezone
-            }
-
-            // slot_id = module.data.config[field]['config_key']
-
-            // ['$input'].val();
-            // var config_key = module.data.config[field]['config_key'];
-
-            // if (slot_id) {
-            //     var payload = {
-            //         "slot_id": slot_id,
-            //         "config_key": config_key,
-            //         "timezone": timezone
-            //     };
-
-            module.ajax('getAppointmentData', payload).then(function(response) {
-                module.debug('getAppointmentData response:', response);
-            }).catch(function (err) {
-                console.error('Error fetching appointment data:', err);
-            });
-        },
-
-        setAppointmentField: function(field) {
-            jq_select = $('#tz_select_appt');
-            jq_select.data('field', field);
-        },
-
-        // Simple modal notification
-        notify: function(title, message) {
-            var $modalCopy = $('#tz_select_confirm_modal').clone().attr('id', 'tz_select_notify_modal_' + Math.floor(Math.random() * 1000000));
-            $('.modal-title', $modalCopy).html(title);
-            $('.modal-body', $modalCopy).html(message);
-            var modal = new bootstrap.Modal($modalCopy.get(0));
-            $('button[data-action="cancel"]', $modalCopy).remove();
-            $('button[data-action="delete"]', $modalCopy).remove();
-            modal.show();
-        },
-
-        confirm: function(title, message, callback) {
-            var $modalCopy = $('#tz_select_confirm_modal').clone().attr('id', 'tz_select_confirm_modal_' + Math.floor(Math.random() * 1000000));
-            $('.modal-title', $modalCopy).html(title);
-            $('.modal-body', $modalCopy).html(message);
-            var modal = new bootstrap.Modal($modalCopy.get(0));
-
-            $('button[data-action="delete"]', $modalCopy)
-            .show()
-            .on('click', function() {
-                if (callback) callback(true);
-                modal.hide().dispose();
-                $modalCopy.remove();
-            });
-            $('button[data-action="cancel"]', $modalCopy)
-            .show()
-            .on('click', function() {
-                modal.hide().dispose();
-                $modalCopy.remove();
-            });
-            $('button[data-action="ok"]', $modalCopy).hide();
-            modal.show();
-        },
 
         // Pull all appointment slots and update the select2 input
         refreshAppointmentSelector: function(){
             // Assumes that the modal is already visible
-            jq_select = $('#tz_select_appt');
-            field = jq_select.data('field');
+            $select = $('#tz_select_appt');
+            field = $select.data('field');
             if (!field) {
                 module.debug('No field data found for timezone selector');
                 return;
@@ -344,16 +350,16 @@
 
             // For reasons I can't figure out, the default options don't seem to work unless I create and destroy it first,
             // so I'll create it here the first time so it behaves the same when used many times in one session
-            if (!jq_select.hasClass('select2-hidden-accessible')) {
-                jq_select.select2();
+            if (!$select.hasClass('select2-hidden-accessible')) {
+                $select.select2();
             }
 
             // Clear existing values
             // module.debug("Destroying existing select2");
-            jq_select.select2('destroy').empty();
+            $select.select2('destroy').empty();
 
             // Initalize with loading state...
-            jq_select.data('field', field).select2({
+            $select.data('field', field).select2({
                 data: [{id:'',text:'Loading...'}]
             });
 
@@ -374,10 +380,19 @@
                 //     ([k,v]) => ({id: v.id, text: v.text })
                 // );
                 data = response.data;
-                jq_select.empty().select2({
+                $select.empty().select2({
                     width: '100%',
                     dropdownParent: $('#tz_select_appt_modal'), // Required for bootstrap modals
                     data: data,
+                    templateSelection: function (data) {
+                        // This allows you to add HTML to the select data 'text' attribute without affecting its value in the actual input box
+                        // module.debug(data);
+                        if (!data.id) {
+                            return data.text;
+                        }
+                        // return $("<div class='tz>" + data.text.replace(/\n/g, '<br/>') + "</div>");
+                        return $('<div>').addClass('tz-selection').html(data.text.replace(/\n/g, '<br/>'));
+                    },
                     templateResult: function (data) {
                         // This allows you to add HTML to the select data 'text' attribute without affecting its value in the actual input box
                         // module.debug(data);
@@ -389,10 +404,12 @@
                             return data.text;
                         }
 
-                        var title = data.title ? '<span><b>' + data.title + '</b></span><br/>' : '';
-                        var $result = $('<div>' + title + '<b>' + data.text + '</b> <span class="small" style="color:#888;"><i>(' + data.diff + ')</i></span></div>');
-                        var description = data.description.replace(/\n/g, '<br/>');
-                        module.debug(description);
+                        // var title = data.title ? '<span><b>' + data.title + '</b></span><br/>' : '';
+                        // var $result = $('<div>' + title + '<b>' + data.text + '</b> <span class="small" style="color:#888;"><i>(' + data.diff + ')</i></span></div>');
+
+                        // Convert newlines to <br/>
+                        var description = data.text.replace(/\n/g, '<br/>');
+                        // module.debug(description);
                         $result = $('<div>' + description + '</div>');
                         return $result;
                     },
@@ -401,6 +418,8 @@
                 }).on('change', function() {
                     // We are going to ignore change event, as all that matters is a 'SAVE' event
                     module.debug('change event triggered');
+                    $('span.select2-selection--single', '#tz_select_appt_modal').addClass('select2-selection--multiple').removeClass('select2-selection--single');
+
                     // var selectedAppointment = $(this).val();
                     // module.debug("Selected Appointment:", selectedAppointment);
                 });
@@ -410,43 +429,50 @@
             });
         },
 
+
         // Pull (or reuse) timezone values for select2 input
         refreshTimezoneSelector: function() {
             // Assumes that the modal is already visible
-            jq_select = $('#tz_select_timezone');
+            $select = $('#tz_select_timezone');
 
-            if (!jq_select.hasClass('select2-hidden-accessible')) {
+            if (!$select.hasClass('select2-hidden-accessible')) {
                 // Initialize the select2
                 module.ajax('getTimezones', []).then(function (response) {
                     // data = Object.entries(response.timezones).map(([k,v]) => ({id: v, text: v}));
                     data = response.data;
-                    jq_select.select2({
+                    $select.select2({
                         width: '100%',
                         dropdownParent: $('#tz_select_timezone_modal'),
                         data: data,
                         placeholder: "Select your timezone",
-                        allowClear: true
+                        allowClear: false
                     }).on('change', function() {
-                        module.debug('change event triggered for timezone!!');
+                        // module.debug('change event triggered for timezone!!');
                     }).val(module.getTimezone()).trigger('change');
-
                 }).catch(function (err) {
                     // Handle error
                     module.debug("Error fetching timezones: ", err);
-                    alert(err);
+                    module.notify("Error Fetching Timezone", err);
                 });
             } else {
-                jq_select = $('#tz_select_timezone').val(module.getTimezone()).trigger('change');
+                // Show or hide the use default timezone button
+                // if (module.cookieExists(cookie_name)) {
+                //     $('#tz_select_clear_timezone_button').show();
+                // } else {
+                //     $('#tz_select_clear_timezone_button').hide();
+                // }
+                $select = $('#tz_select_timezone').val(module.getTimezone()).trigger('change');
             }
         },
+
 
         // Update rendering of the appointment container based on slot value
         updateContainer: function(field) {
             let $input = module.data.config[field].$input;
             let slot_id = $input.val();
-            let jq_container = module.data.config[field]['jq_container'];
+            let $container = module.data.config[field].$container;
 
-            module.debug('Update Container called for field:', field, 'slot_id:', slot_id, 'container:', jq_container);
+            module.debug('Update Container called for field:', field, 'slot_id:', slot_id, 'container:', $container);
             let mode = 'display';
 
             if (slot_id) {
@@ -467,12 +493,39 @@
                         if (response.success) {
                             if (response.data.id !== slot_id) {
                                 // This should NEVER happen
-                                alert ("This record's current " + field + " value of " + slot_id + "\ndoes not match the saved value of " + response.data.id + ".  This shouldn't happen!  Please notify an administrator.");
+                                module.notify("ERROR", "This record's current " + field + " value of " + slot_id + "\ndoes not match the saved value of " + response.data.id + ".\n\nThis shouldn't happen!\nPlease notify an administrator.");
                                 return false;
                             }
                             // $input.data('slot_text', response.data.text);
-                            $input.data('slot_text', response.data.description);
+                            $input.data('slot_text', response.data.text); // was description ABM
                             $input.data('slot_timezone', response.data.timezone);
+                            // $input.data('add_to_calendar_config', response.data.add_to_calendar_config);
+                            $input.data('add_to_calendar_config', response.data.add_to_calendar_config);
+
+                            module.debug('Config:', response.data.add_to_calendar_config);
+
+                            // var d = '<add-to-calendar-button';
+                            // $.each(response.data.config, function(key, value) {
+                            //     d += ' ' + key + '="' + value + '"';
+                            // });
+                            // d += '></add-to-calendar-button>';
+
+                            // $container = module.data.config[field]['$container'];
+                            // var $addContainer = $('div.add-container', $container);
+                            // module.debug("Add Container Element: ", $addContainer);
+                            // $addContainer.empty().html(d);
+                            // Need to re-init the atcb button
+                            // setTimeout(function() {
+                            //     console.log("Timeout"); atcb_init();
+                            // }, 1000);
+                            // If you have a custom init function or action, use that instead:
+
+                            // try {
+                            //     module.init_atcb();
+                            // } catch (e) {
+                            //     module.debug("Error initializing add-to-calendar button:", e);
+                            // }
+                            // $('.add-to-calendar-span', $container).html(response.data.add_to_calendar_html);
                             module.updateContainer(field);  // Recurse once
                         } else {
                             module.notify('Exception', 'Unable to load appointment data for ' + field + ':\n\n' + response.message ?? 'Unknown error');
@@ -484,63 +537,103 @@
                     return;
                 } else {
                     module.debug('Using existing slot_text data for field:', field);
-                    $('.appt-text', jq_container).html(slot_text.replace(/\n/g, '<br/>'));
+                    $('.appt-text', $container).html(slot_text.replace(/\n/g, '<br/>'));
                 }
-                $('.display-value', jq_container).show();
-                $('.select-value', jq_container).hide();
+                $('.display-value', $container).show();
+                module.init_atcb();
+                $('.select-value', $container).hide();
             } else {
                 mode = 'select';
-                $('.display-value', jq_container).hide();
-                $('.select-value', jq_container).show();
+                $('.display-value', $container).hide();
+                $('.select-value', $container).show();
             }
-
-            //     if (!slot_text || slot_timezone !== timezone) {
-            //         // We need to query to refresh this field
-            //         // result = module.getAppointmentData(field);
-            //         var payload = {
-            //             "config_key": module.data.config[field]['config_key'],
-            //             "timezone": timezone,
-            //         }
-            //         module.ajax('getAppointmentData', payload).then(function(response) {
-            //             module.debug('getAppointmentData response:', response, field, slot_id);
-            //             if (response.success) {
-            //                 if (response.data.id !== slot_id) {
-            //                     // This means the current value doesn't match the saved value.  This shouldn't happen
-            //                     alert ("This record's current " + field + " value of " + slot_id + "\ndoes not match the saved value of " + response.data.id + ".  This shouldn't happen.");
-            //                     return false;
-            //                 }
-            //                 // $input.data('slot_text', response.data.text);
-            //                 $input.data('slot_text', response.data.description);
-            //                 $input.data('slot_timezone', timezone);
-            //                 module.updateContainer(field);  // Recurse once
-            //             }
-            //         }).catch(function (err) {
-            //             console.error('Error fetching appointment data:', err);
-            //         });
-            //         return;
-            //     } else {
-            //         // We have the text already
-            //         $('.appt-text', jq_container).html(slot_text.replace(/\n/g, '<br/>'));
-            //         $('.slot-id', jq_container).text('(Slot #' + slot_id + ')');
-            //     }
-            //     $('.display-value', jq_container).show();
-            //     $('.select-value', jq_container).hide();
-
-            // } else {
-            //     // It is empty
-            //     $('.display-value', jq_container).hide();
-            //     $('.select-value', jq_container).show();
-            // }
         },
 
 
 
 
+        // Timezone Functions
+        getTimezone: function() {
+            var tz = module.getCookie(cookie_name);
+            if (!tz) {
+                tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            }
+            return tz;
+        },
+
+        setTimezone: function(tz) {
+            module.setCookie(cookie_name, tz, 30); // Save for 30 days
+            module.debug("Timezone set to:", tz);
+        },
+
+        clearTimezone: function() {
+            module.debug("Clearing timezone cookie");
+            module.clearCookie(cookie_name);
+            module.debug("Cookie exists?", module.cookieExists(cookie_name));
+        },
+
+        // Cookie Functions
+        getCookie: function(name) {
+            let nameEQ = name + "=";
+            let ca = document.cookie.split(';');
+            for(let i=0; i < ca.length; i++) {
+                let c = ca[i];
+                while(c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if(c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        },
+
+        cookieExists: function(name) {
+            return document.cookie.split(';').some((c) => c.trim().startsWith(name + '='));
+        },
+
+        setCookie: function(name, value, days = 1) {
+            let d = new Date();
+            d.setTime(d.getTime() + (days*24*60*60*1000));
+            let expires = "expires="+ d.toUTCString();
+            document.cookie = `${name}=${value};${expires};path=/;SameSite=Strict;`
+        },
+
+        clearCookie: function(name) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        },
 
 
+        // Simple modal notification
+        notify: function(title, message) {
+            var $modalCopy = $('#tz_select_confirm_modal').clone().attr('id', 'tz_select_notify_modal_' + Math.floor(Math.random() * 1000000));
+            $('.modal-title', $modalCopy).html(title);
+            $('.modal-body', $modalCopy).html(message);
+            var modal = new bootstrap.Modal($modalCopy.get(0));
+            $('button[data-action="cancel"]', $modalCopy).remove();
+            $('button[data-action="delete"]', $modalCopy).remove();
+            modal.show();
+        },
 
 
+        confirm: function(title, message, callback) {
+            var $modalCopy = $('#tz_select_confirm_modal').clone().attr('id', 'tz_select_confirm_modal_' + Math.floor(Math.random() * 1000000));
+            $('.modal-title', $modalCopy).html(title);
+            $('.modal-body', $modalCopy).html(message);
+            var modal = new bootstrap.Modal($modalCopy.get(0));
 
+            $('button[data-action="delete"]', $modalCopy)
+            .show()
+            .on('click', function() {
+                if (callback) callback(true);
+                modal.hide(); //.dispose();
+                $modalCopy.remove();
+            });
 
+            $('button[data-action="cancel"]', $modalCopy)
+            .show()
+            .on('click', function() {
+                modal.hide(); //.dispose();
+                $modalCopy.remove();
+            });
+            $('button[data-action="ok"]', $modalCopy).hide();
+            modal.show();
+        }
     });
 }

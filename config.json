@@ -28,7 +28,8 @@
         "getAppointmentOptions",
         "cancelAppointment",
         "getSlot",
-        "reserveSlot"
+        "reserveSlot",
+        "addToCalendar"
     ],
 
     "no-auth-ajax-actions": [
@@ -38,7 +39,8 @@
         "getAppointmentOptions",
         "cancelAppointment",
         "getSlot",
-        "reserveSlot"
+        "reserveSlot",
+        "addToCalendar"
 
     ],
 
@@ -80,46 +82,52 @@
                 },
                 {
                     "key": "appt-field",
-                    "name": "<b>Appointment Field</b><br>This field will display a button to select an available slot or a summary of the scheduled appointment.  The field will store the <code>slot_id</code> of the appointment and should be of type text",
+                    "name": "<b>Appointment Field</b><br/>This field will display a button to select an available slot or a summary of the scheduled appointment.  The field will store the <code>slot_id</code> of the appointment and should be of type text",
                     "required": true,
                     "type": "field-list",
                     "field-type": "text"
                 },
                 {
                     "key": "appt-button-label",
-                    "name": "<b>Appointment Button Label</b><br><i>(Optional)</i> Customize the button label - if blank it will read: <button class='button btn-xs btn-primaryrc'>Select An Appointment</button>",
+                    "name": "<b>Appointment Button Label</b><br/><i>(Optional)</i> Customize the appointment button label<ul><li>if blank it will read: <button class='button btn-xs btn-primaryrc'>Select An Appointment</button></li></ul>",
                     "required": false,
                     "type": "text"
                 },
                 {
                     "key": "appt-event-id",
-                    "name": "<b>Appointment Field Event</b><br>Select the event where the Appointment Field above resides.<br/><span><sup>*</sup><i>If you wish to use the same Appointment Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i></span>",
+                    "name": "<b>Appointment Field Event</b><br/>Select the event where the Appointment Field above resides.<ul><li><i>If you wish to use the same Appointment Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i></li></ul>",
                     "required": true,
                     "type": "event-list"
                 },
                 {
                     "key": "appt-datetime-field",
-                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> Field in this project to hold the appointment date/time in the <b>server's timezone</b>.  This can be used to automate reminders to the participant using datediff logic.  This field <b>MUST BE VALIDATED AS Y-M-D H:M</b> - any other format may cause errors.  It must also be in the same event above<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
+                    "name": "<b>Appointment Server DateTime Field</b><br><i>(Optional)</i> If specified, the <b>server timestamp</b> for this appointment will be stored.  This can be used to automate reminders to the participant using datediff logic and notifications.  <ul><li>validate as <b>Y-M-D H:M</b>, any other format may cause errors.</li><li>field must present in the Appointment Field Event</li><li>recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey</li></ul>",
                     "required": false,
                     "type": "field-list",
                     "validation": "datetime"
                 },
                 {
                     "key": "appt-description-format",
-                    "name": "<b>Appointment Description Format</b><br><i>(Optional)</i> Specify the format (like piping) for the appointment description. This format will control what the participant sees after selecting an appointment.  If blank, a default format is used:<div class='p-1 alert alert-secondary'>{title} (#{slot_id})<br/>{client-nicedate} at {client-time} {client-tza}<br/><==({server-time} {server-tza})==></div>The available replacement tags are listed below:<pre style='font-size:smaller;'>{slot_id} => slot db record id<br/>{title} => slot title<br/>{date} => slot date (yyyy-mm-dd)<br/>{time} => slot time (hh:mm) in 24 hour format<br/>{server-time} => 'HH:MM am/pm' in server timezone<br/>{server-nicedate} => 'Sat, Jan 1st, 2025'<br/>{server-date} => date (mm/dd/yyyy)<br/>{server-ts} => server timestamp 'yyyy-mm-dd hh:mm'<br/>{server-tza} => short server timezone abbreviation (e.g. PST, EDT)<br/>{client-time} => 'HH:MM am/pm' in client timezone<br/>{client-nicedate} => 'Sat, Jan 1st, 2025'<br/>{client-tza} => short client timezone abbreviation (e.g. PST, CST, EDT)<br/>{client-date} => 'mm/dd/yyyy'<br/>{client-ts} => client timestamp 'yyyy-mm-dd hh:mm'<br/>{client-tz} => 'America/Los_Angeles'<br/>{diff} => duration until appointment 'x days y hours'</pre><sup>*</sup>Any parts surrounded by <code><==</code> and <code>==></code> will be omitted if the client timezone and the server timezone are the same to reduce redundency",
+                    "name": "<b>Override Appointment Description Format</b><br><i>(Optional)</i> This is how the appointment will be seen by the participant.  If blank, a default format is used:<ul><li><code>{title} (#{slot_id})<br/>{client-nicedate} at {client-time} {client-tza}<br/><==({server-time} {server-tza})==></code></li></ul>You can customize the format, similar to piping, using the syntax below:<pre style='font-size:smaller;'>{slot_id} => slot db record id<br/>{title} => slot title<br/>{date} => slot date (yyyy-mm-dd)<br/>{time} => slot time (hh:mm) in 24 hour format<br/>{server-time} => 'HH:MM am/pm' in server timezone<br/>{server-nicedate} => 'Sat, Jan 1st, 2025'<br/>{server-date} => date (mm/dd/yyyy)<br/>{server-ts} => server timestamp 'yyyy-mm-dd hh:mm'<br/>{server-tza} => short server timezone abbreviation (e.g. PST, EDT)<br/>{client-time} => 'HH:MM am/pm' in client timezone<br/>{client-nicedate} => 'Sat, Jan 1st, 2025'<br/>{client-tza} => short client timezone abbreviation (e.g. PST, CST, EDT)<br/>{client-date} => 'mm/dd/yyyy'<br/>{client-ts} => client timestamp 'yyyy-mm-dd hh:mm'<br/>{client-tz} => 'America/Los_Angeles'<br/>{diff} => duration until appointment 'x days y hours'</pre><ul><li>Any parts surrounded by <code><==</code> and <code>==></code> will be omitted if the client timezone and the server timezone are the same to reduce redundency</li></ul>",
                     "required": false,
                     "type": "textarea"
                 },
                 {
                     "key": "appt-description-field",
-                    "name": "<b>Appointment Description Field</b><br><i>(Optional)</i> The appointment description specified above can be saved into a <u>note field</u>.  This is useful for piping into the body of a confirmation or reminder email<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
+                    "name": "<b>Appointment Description Field</b><br><i>(Optional)</i> The above appointment description can be saved into a field,  useful for piping into reminders with participants timezone.<ul><li>field must be of type <u>note</u></li><li>recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey</li></ul>",
                     "required": false,
                     "type": "field-list",
                     "field-type": "textarea"
                 },
                 {
-                    "key": "appt-participant-formatted-date-field",
-                    "name": "<b>Appointment Participant Formatted Date</b><br><i>(Optional)</i> Select a <b>text field</b> (do not validate it as a date/time as this will fail!) and the nicely formatted string that the participant saw when selecting their appointment will be stored.  This could be piped into a reminder email so the participant can see the appointment time in their selected timezone.<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
+                    "key": "slot-filter-field",
+                    "name": "<b>Slot Filter Field</b><br><i>(Optional)</i> If set, only those slots that have a matching <code>slot filter value</code> will be displayed.<ul><li>- You can use a <code>@CALCTEXT</code> field to create complex slot filter values, but the value must already be saved for the record.  So, a @CALCTEXT field on the same page as the appointment selector field may not operate as intended, <i>i.e.</i> use the multipages pagination in survey settings to save the value before scheduling the appointment</li></ul>",
+                    "required": false,
+                    "type": "field-list"
+                },
+                {
+                    "key": "appt-participant-text-date-field",
+                    "name": "<b>Appointment Participant Text Date Field</b><br><i>(Optional)</i> If specified, a simplified version of the selected date will be stored, <i>e.g. Wed, Nov 5th, 2025 at 9:00 AM CST</i>.<ul><li>Must be a <u>text field</u> (do not validate it as a date/time as this will fail)</li><li>recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey</li></ul>",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
