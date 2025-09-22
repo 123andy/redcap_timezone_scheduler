@@ -199,8 +199,26 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $appointments;
     }
 
+    // Looks up the slot filter value for the current record based on config if defined
+    public function getSlotFilterValue($config_key, $record, $event_id, $repeat_instance) {
+        $this->emDebug("getSlotFilterValue called with config_key: $config_key, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
+        $config = $this->get_tz_config($config_key);
+        $slot_filter_field = $config['slot-filter-field'] ?? null;
+        $slot_filter_value = null;
+
+        if (!empty($slot_filter_field)) {
+            // Get the slot_filter value from the current record
+            $redcap_data = REDCap::getData('json', [$record], [$slot_filter_field], $event_id, $repeat_instance);
+            $q = json_decode($redcap_data, true);
+            $this->emDebug("Redcap data in getSlotFilterValue for record $record: ", $q);
+            $slot_filter_value = $q[0][$slot_filter_field] ?? null;
+        }
+        return $slot_filter_value;
+    }
+
+
     // Get all available slots as defined by the config_key
-    public function getSlots($config_key, $filter_available = true) {
+    public function getSlots($config_key, $filter_available = true, $slot_filter_value = null) {
         $this->emDebug("getSlots for $config_key");
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
@@ -208,6 +226,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
             return false;
         }
+
+
+
+
 
         // Load data from slot database
         $redcap_data = REDCap::getData($slot_project_id, 'array');
@@ -219,6 +241,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 if (!empty($data['project_filter']) && $data['project_filter'] !== $this->getProjectId()) {
                     // $this->emDebug("Skipping slot $slot_id due to project_id filter");
                     continue;
+                }
+
+                if (!empty($slot_filter_value)) {
+                    $this->emDebug("Filtering for slot_filter of $slot_filter_value");
+                    if (empty($data['slot_filter']) || trim($data['slot_filter']) !== trim($slot_filter_value)) {
+                        $this->emDebug("Skipping slot $slot_id due to slot_filter mismatch, [" . ($data['slot_filter'] ?? 'NULL') . "] != [$slot_filter_value]");
+                        continue;
+                    }
                 }
 
                 // Filter already reserved slots based on argument
@@ -345,7 +375,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (empty($slot_project_id) || empty($slot_id)) {
-            throw new TimezoneException("Invalid configuration in Timezone Scheduler module for $config_key with slot $slot_id");
+            throw new TimezoneException("Invalid configuration in Timezone Scheduler module for config: $config_key with slot id: $slot_id");
         }
 
         // Lock Slot
@@ -516,11 +546,15 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         $timezone = date_default_timezone_get();
                         $this->emDebug("No client timezone provided, using server default: ", $timezone);
                     }
-                    // Query all available slots
-                    $slots = $this->getSlots($config_key, true);
 
-                    // Convert slots into appointment options
-                    // TODO: Consider grouping the options by date (if there are multiple per day, perhaps, otherwise there would be too many groups) - could have 'group by day, week, month options?'
+                    // We have implemented a slot-filtering option to allow for multiple types of slots in the same slot db - in order to filter, we need to know the slot-filter for the current record
+                    $slot_filter_value = $this->getSlotFilterValue($config_key, $record, $event_id, $repeat_instance);
+                    $this->emDebug("Using slot_filter_value: $slot_filter_value");
+
+                    // Query all available slots
+                    $slots = $this->getSlots($config_key, true, $slot_filter_value);
+
+                    $this->emDebug("Available: " . count($slots) . " slots");
                     $appointment_options = $this->getAppointmentOptions2($config_key, $slots, $timezone);
 
                     $count = count($appointment_options);
@@ -700,7 +734,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
     public function slotToCalendarConfig($slot) {
-        $this->emDebug("slotToCalendarConfig called with slot: ", $slot);
+        // $this->emDebug("slotToCalendarConfig called with slot: ", $slot);
         if (empty($slot)) return null;
 
         $server_dt = new DateTime($slot['date'] . ' ' . $slot['time']);
@@ -901,9 +935,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
     // Builds an array of configured instances using field-event as a unique key
     private function load_tz_configs() {
-        $instances = $this->getSubSettings('instances');
         if (empty($this->config)) {
             $this->config = [];
+            $instances = $this->getSubSettings('instances');
             foreach ($instances as $index => $instance) {
                 // Load each instance's configuration
                 $slot_project_id = $instance['slot-project-id'] ?? null;

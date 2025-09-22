@@ -101,9 +101,20 @@ Scheduled: {date} at {time} {server-tza} ({client-time} {client-tza})
 ## Development Notes ##
 
 The javascript container for each appointment gets
-- data-field with the fieldname for the slot input
+- data-field with the fieldname for the container.  This is used by buttons to know where they are
 
 
 Similarly, given a field_name, you can get the input and the select
-module.data.config.["field"].$input
-module.data.config.["field"].$container
+- module.data.config.["field"].$input
+- module.data.config.["field"].$container
+
+
+## Using the Slot Filter Option ##
+It is possible to have many different 'Appointment Types' in a single slot database by using the `Slot Filter` option.
+
+When configuring your appointment, you can specify a `Slot Filter Field`.  If specified, the appointment will only show those slots from the slot database who have a matching value for the `Slot Filter Field`.
+
+For example, suppose you randomizes participants into two groups, `A` and `B` using the field `[random_group]`.  If you set the `Slot Filter Field` = `random_group`, it will filter available appointments to only those unscheduled slots where the `Slot Filter` attribute maches.
+
+If your filter includes a combination of two fields from the participant record, such as gender + random_group, you can accomplish this using a `@CALCTEXT` field, e.g. `@CALCTEXT([gender]-[random_group])` which would produce filter values like `1A, 1B, 2A, 2B`...  Note, that in order for this to work, the `@CALCTEXT` field must be SAVED before the appointment is rendered, so it should be set on a previous section or a multipage survey or a previous instrument.
+
