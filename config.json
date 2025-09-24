@@ -29,7 +29,8 @@
         "cancelAppointment",
         "getSlot",
         "reserveSlot",
-        "addToCalendar"
+        "addToCalendar",
+        "cancelAppointmentFromUrl"
     ],
 
     "no-auth-ajax-actions": [
@@ -40,8 +41,8 @@
         "cancelAppointment",
         "getSlot",
         "reserveSlot",
-        "addToCalendar"
-
+        "addToCalendar",
+        "cancelAppointmentFromUrl"
     ],
 
     "links": {
@@ -59,7 +60,7 @@
     },
 
     "no-auth-pages": [
-
+        "pages/cancel"
     ],
 
     "project-settings": [
@@ -67,6 +68,18 @@
             "key": "instructions",
             "name": "<b>Instructions</b><br>This module allows participants to select appointments from a separate REDCap project that acts as an 'Appointment Slot Database'.  In this project, the appointment is stored as a 'slot_id' from the Slot database.  You can optionally store additional information in other fields.<br/><br/>Please see the sidebar link added to the project (only visible to users with design rights)",
             "type": "descriptive"
+        },
+        {
+            "key": "timezone-database",
+            "name": "<b>Timezone Database</b><br/>Select what Timezone groups you wish to include in the lookup tooltip.  The default is to include <a href='https://www.iana.org/time-zones' target='_blank'>all global timezones</a>, but you can limit the options to only those that are relevant to your study population.<ul><li>Note that someone outside of the provided timezones can still use their browser-based default timezone to book an appointment.  This selection only limits the custom timezone dropdown options</li></ul>If you wish to have more custom timezone groups, please contact the developer.",
+            "type": "dropdown",
+            "required": true,
+            "choices": [
+                { "value": "all", "name": "All Global Timezones (default)" },
+                { "value": "usa", "name": "United States (custom w/ 4 options)" },
+                { "value": "north_america", "name": "North America (custom w/ 8 options)" },
+                { "value": "europe", "name": "Europe (custom w/ 7 options)" }
+            ]
         },
         {
             "name": "Configuration instance for each reservable appointment slot",
@@ -128,6 +141,13 @@
                 {
                     "key": "appt-participant-text-date-field",
                     "name": "<b>Appointment Participant Text Date Field</b><br><i>(Optional)</i> If specified, a simplified version of the selected date will be stored, <i>e.g. Wed, Nov 5th, 2025 at 9:00 AM CST</i>.<ul><li>Must be a <u>text field</u> (do not validate it as a date/time as this will fail)</li><li>recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey</li></ul>",
+                    "required": false,
+                    "type": "field-list",
+                    "field-type": "text"
+                },
+                {
+                    "key": "appt-cancel-url-field",
+                    "name": "<b>Cancel Appointment URL</b><br><i>(Optional)</i> This field will contain a URL that will goto a page to cancel the appointment.  This is useful if you wish to give participants the ability to cancel an appointment in an email notification.<br/>It is recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey",
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
