@@ -1,6 +1,34 @@
-# Timezone Scheduler
+# REDCap module: Timezone Scheduler
 
-This module is intended to facilitate scheduling with support for multiple client timezones
+This REDCap module allows participants (via survey or data entry form) to select an appointment from a database of available appointment slots in their browser timezone or a custom-selected timezone.
+
+This is especially useful for cases when study participants might need to schedule a visit and they may not be in the same timezone as the REDCap server.
+
+The module also contains a number of customizations that allow project designers to send notifications to participants with appointment details in their own timezone.
+
+## Prerequisites
+- A modern version of [REDCap](https://project-redcap.org).
+
+## Easy Installation
+- Obtain this module from the Consortium [REDCap Repo](https://redcap.vanderbilt.edu/consortium/modules/index.php) from the control center.
+
+
+## Manual Installation
+- Clone this repo into `<redcap-root>/modules/timezone_scheduler_v0.0.0`.
+- Go to **Control Center > External Modules** and enable Timezone Scheduler.
+- To activate this module for a particular project, go to the project home page, click on the **External Modules** link, and then enable Timezone Scheduler for that project.  Note: this may not be available if your REDCap administrator has hidden or requires approval to enable External Modules.
+
+## Slot Database Configuration
+Prior to enabling this external module on a project, you need to create a Slot Database.  The Slot Database *DOES NOT* use the external module and it is not necessary to enable the external module on the Slot Database project.  The easiest way to create a compliant slot database is to use the provided [REDCap Project XML File](https://github.com/123andy/).  Goto REDCap, select `Create a new REDCap Project`, and then chose the `Upload a REDCap project XML file`.
+
+![Adding a new Slot Database](./docs/new_slot_db_screenshot.png)
+
+### Creating New Slots in the Slot Database
+Once you have your new slot database, use the [Import Template](./docs/slot_db_import_template.csv) to create an then import a number of available slots.  Note:
+- It is important to never reuse the `slot_id` field.  For this reason, I always recommend importing with the text `NEW` in the `slot_id` field and letting REDCap take care of the record numbering for you.
+
+### Error and Debug Configuration
+This external module uses the [emLogger module](https://github.com/susom/redcap-em-logger) to write DEBUG, INFO, and ERROR messages to a file on your server.  It is not required for operation, but can be useful for troubleshooting.  If you have `emLogger` installed and configured, you can enable it either system-wide or project-wide in the external module configuration.  If enabled on a project, javascript debugging will also be enabled and you should see messages in the browser javascript console.
 
 
 
@@ -109,7 +137,10 @@ Similarly, given a field_name, you can get the input and the select
 - module.data.config.["field"].$container
 
 
-## Using the Slot Filter Option ##
+
+
+
+### Using the Slot Filter Option ###
 It is possible to have many different 'Appointment Types' in a single slot database by using the `Slot Filter` option.
 
 When configuring your appointment, you can specify a `Slot Filter Field`.  If specified, the appointment will only show those slots from the slot database who have a matching value for the `Slot Filter Field`.
