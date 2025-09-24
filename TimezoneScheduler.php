@@ -5,7 +5,6 @@ use DateTime;
 use DateTimeZone;
 use DateInterval;
 use Exception;
-use Vanderbilt\REDCap\Classes\MyCap\Api\Field\Date;
 
 require_once "classes/TimezoneException.php";
 require_once "emLoggerTrait.php";
@@ -114,6 +113,44 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $slot_id;
     }
 
+    public function getCancelUrl($config_key, $record, $event_id, $repeat_instance) {
+        $config = $this->get_tz_config($config_key);
+        $slot_id_field = $config['appt-field'] ?? null;
+
+        if (empty($slot_id_field)) {
+            $this->emError("Invalid configuration - missing slot id field for config_key: $config_key", $config);
+            throw new TimezoneException("Invalid configuration - missing slot id field for config_key: $config_key");
+        }
+
+        // Get the slot_id from the current record
+        // TODO -- handle repeat instances?  switch to json?
+        $redcap_data = REDCap::getData('array', [$record], [$slot_id_field], $event_id);
+        // $this->emDebug("Redcap data for record $record: ", $redcap_data);
+        if (empty($redcap_data) || empty($redcap_data[$record]) || empty($redcap_data[$record][$event_id]) || empty($redcap_data[$record][$event_id][$slot_id_field])) {
+            $this->emDebug("No slot_id found for record $record in event $event_id in field $slot_id_field", $redcap_data);
+            throw new TimezoneException("No slot_id found for record $record in event $event_id in field $slot_id_field");
+        }
+        $slot_id = $redcap_data[$record][$event_id][$slot_id_field] ?? null;
+
+        if (empty($slot_id)) {
+            $this->emDebug("Empty slot_id found for record $record in field $slot_id_field");
+            throw new TimezoneException("Empty slot_id found for record $record in field $slot_id_field");
+        }
+
+        // Build cancel URL
+        // Example: https://redcap.local/redcap_v15.3.3/ExternalModules/?prefix=timezone_scheduler&page=cancel&key=abcdef&config=default&pid=38&record=1&event_id=88&instance=1
+        $params = [
+            'prefix' => $this->PREFIX,
+            'page' => 'cancel',
+            'key' => $this->getSystemSetting('cancel-key'),
+            'config' => $config_key,
+            'pid' => $this->getProjectId(),
+            'record' => $record,
+            'event_id' => $event_id,
+        ];
+    }
+
+
     // Given an array of slot records, build the appointment options
     public function getAppointmentOptions2($config_key, $slots, $client_timezone, $filter_past_dates = true) {
         $config = $this->get_tz_config($config_key);
@@ -199,6 +236,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $appointments;
     }
 
+
     // Looks up the slot filter value for the current record based on config if defined
     public function getSlotFilterValue($config_key, $record, $event_id, $repeat_instance) {
         $this->emDebug("getSlotFilterValue called with config_key: $config_key, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
@@ -265,7 +303,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Return the slot record for the specified slot_id
+    /**
+     * @param string $config_key The configuration key to use
+     * @param int $slot_id The slot id (record id in slot project)
+     * @return mixed The slot record as an associative array or null if not found
+     *
+     * Currently does not throw any exceptions
+     */
     public function getSlot($config_key, $slot_id) {
         $this->emDebug("getSlot called with config_key: $config_key, slot_id: $slot_id");
         $config = $this->get_tz_config($config_key);
@@ -273,16 +317,22 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Pull config data for only selected record:
         // switching to json format so we can easily re-save and don't need the event_id...
         $slot_project_id = $config['slot-project-id'] ?? null;
+        if (empty($slot_project_id)) {
+            $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
+            return null;
+        }
+
         $redcap_query = REDCap::getData($slot_project_id, 'json', [$slot_id]);
         $redcap_data = json_decode($redcap_query, true);
         // $this->emDebug("redcap_data for slot_id $slot_id: ", $redcap_data);
         if (empty($redcap_data)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id");
-        } else {
-            // Just take the current (only) record returned
-            $redcap_data = current($redcap_data);
+            return null;
         }
-        return $redcap_data;
+
+        // Just take the current (only) record returned
+        $result = current($redcap_data);
+        return $result;
     }
 
 
@@ -352,7 +402,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         // Now lets clear the current record
         $data = [];
-        $keys = ['appt-field', 'appt-datetime-field', 'appt-description-field', 'appt-participant-text-date-field', 'slot-record-url-field'];
+        $keys = ['appt-field', 'appt-datetime-field', 'appt-description-field', 'appt-participant-text-date-field', 'appt-cancel-url-field', 'slot-record-url-field'];
         foreach ($keys as $key) {
             if (!empty($config[$key])) {
                 $data[$config[$key]] = null;
@@ -473,6 +523,17 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $data[$config['appt-description-field']] = $appointment['text'] ?? 'Unable to parse appointment';
         }
 
+        // Build a cancel URL if configured
+        if ($config['appt-cancel-url-field']) {
+            // Build cancel URL: The key should be specific to the slot_id, record, event, and instance, AND reservation ts so it is unique and not guessable
+
+            $key_raw = $config_key . "|" . $slot_id . "|" . $record . "|" . $event_id . "|" . $repeat_instance . "|" . $slot['reserved_ts'];
+            $key = encrypt($key_raw);
+            $cancel_url = $this->getUrl('pages/cancel.php', true) . "&" . http_build_query(["key" => $key]);
+            $data[$config['appt-cancel-url-field']] = $cancel_url;
+        }
+
+
         // TODO: Consider removing this url as well and just add a plugin hook to show the slot details
         if ($config['slot-record-url-field']) {
             // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
@@ -500,12 +561,93 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $data;
     }
 
+    /**
+     * Get a list of timezones for select2
+     * Selection is based on the 'timezone-database' project setting
+     * @return array An array of timezones formatted for select2
+     */
+    public function getTimezoneList() {
+        $timezone_db = $this->getProjectSetting('timezone-database') ?? 'all';
+        switch ($timezone_db) {
+            case 'usa':
+                $options = [
+                    [ "id" => "America/New_York", "text" => "Eastern (ET/EST) [America/New_York]" ],
+                    [ "id" => "America/Chicago", "text" => "Central (CT/CST) [America/Chicago]" ],
+                    [ "id" => "America/Denver", "text" => "Mountain (MT/MST) [America/Denver]" ],
+                    [ "id" => "America/Los_Angeles", "text" => "Pacific (PT/PST) [America/Los_Angeles]" ],
+                    [ "id" => "America/Anchorage", "text" => "Alaska (AKT/AKST) [America/Anchorage]" ],
+                    [ "id" => "Pacific/Honolulu", "text" => "Hawaii (HST) [Pacific/Honolulu]" ],
+                ];
+                break;
+            case 'europe':
+                $options = [
+                    [ "id" => "Europe/London", "text" => "Europe/London (GMT/BST)" ],
+                    [ "id" => "Europe/Berlin", "text" => "Europe/Berlin (CET/CEST)" ],
+                    [ "id" => "Europe/Paris", "text" => "Europe/Paris (CET/CEST)" ],
+                    [ "id" => "Europe/Rome", "text" => "Europe/Rome (CET/CEST)" ],
+                    [ "id" => "Europe/Helsinki", "text" => "Europe/Helsinki (EET/EEST)" ],
+                    [ "id" => "Europe/Moscow", "text" => "Europe/Moscow (MSK/MSD)" ],
+                    [ "id" => "Europe/Istanbul", "text" => "Europe/Istanbul (TRT)" ],
+                    [ "id" => "Atlantic/Azores", "text" => "Atlantic/Azores (AZOT/AZOST)" ],
+                ];
+                break;
+            case 'north_america':
+                $options = [
+                    [ "id" => "America/New_York", "text" => "Eastern (ET/EST) [America/New_York]" ],
+                    [ "id" => "America/Chicago", "text" => "Central (CT/CST) [America/Chicago]" ],
+                    [ "id" => "America/Denver", "text" => "Mountain (MT/MST) [America/Denver]" ],
+                    [ "id" => "America/Los_Angeles", "text" => "Pacific (PT/PST) [America/Los_Angeles]" ],
+                    [ "id" => "America/Anchorage", "text" => "Alaska (AKT/AKST) [America/Anchorage]" ],
+                    [ "id" => "Pacific/Honolulu", "text" => "Hawaii (HST) [Pacific/Honolulu]" ],
+                    [ "id" => "America/Halifax", "text" => "Atlantic (AT/AST) [America/Halifax]" ],
+                    [ "id" => "America/St_Johns", "text" => "Newfoundland (NT) [America/St_Johns]" ]
+                ];
+                break;
+            default:
+                $timezones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+                $now = new DateTime("now");
+                $grouped = [];
+                foreach ($timezones as $tz) {
+                    $dtz = new DateTimeZone($tz);
+                    $tz_dt = $now->setTimezone($dtz);
+                    $offset = $dtz->getOffset($tz_dt); // Offset in seconds
+
+                    // Calculate the time offset
+                    $sign = ($offset >= 0) ? '+' : '-';
+                    $absSeconds = abs($offset);
+                    $h = floor($absSeconds / 3600);
+                    $m = floor(($absSeconds % 3600) / 60);
+                    $time_offset = sprintf("%s%02d:%02d", $sign, $h, $m);   // e.g., +02:00
+                    $abbreviation = $tz_dt->format('T'); // Timezone abbreviation, e.g., PST or CET
+                    $nice_tz = $tz . " (" . (preg_match('/[A-Z]/', $abbreviation) ? "$abbreviation, " : '') . "UTC$time_offset)";
+
+                    // Handle grouping by continent
+                    $parts = explode('/', $tz, 2);
+                    $region = $parts[0];
+                    if (!isset($grouped[$region])) {
+                        $grouped[$region] = [];
+                    }
+                    $grouped[$region][] = ["id" => $tz, "text" => "$nice_tz"];
+                }
+
+                // Convert grouped to desired format for select2
+                $options = [];
+                foreach ($grouped as $region => $zones) {
+                    $options[] = [
+                        "text" => $region,
+                        "children" => $zones
+                    ];
+                }
+                break;
+        }
+        return $options;
+    }
+
 
     // public function saveAppointment($payload) {
     //     $this->emDebug("saveAppointment called with payload: ", $payload);
     //     // Here you would typically make an AJAX call to save the appointment
     // }
-
     public function redcap_module_ajax($action, $payload, $project_id, $record, $instrument, $event_id, $repeat_instance,
         $survey_hash, $response_id, $survey_queue_hash, $page, $page_full, $user_id, $group_id)
     {
@@ -515,28 +657,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         try {
             switch($action) {
                 case "getTimezones":
-                    // GOOD! Now using groups to sort by continent
-                    $timezones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
-                    // $options = array_map(fn($tz) => ["id" => $tz, "text" => $tz], $timezones);
-                    $grouped = [];
-                    foreach ($timezones as $tz) {
-                        $parts = explode('/', $tz, 2);
-                        $region = $parts[0];
-                        if (!isset($grouped[$region])) {
-                            $grouped[$region] = [];
-                        }
-                        $grouped[$region][] = ["id" => $tz, "text" => $tz];
-                    }
-                    $options = [];
-                    foreach ($grouped as $region => $zones) {
-                        $options[] = [
-                            "text" => $region,
-                            "children" => $zones
-                        ];
-                    }
                     $result = [
                         "success" => true,
-                        "data" => $options
+                        "data" => $this->getTimezoneList()
                     ];
                     break;
                 case "getAppointmentOptions":
@@ -623,7 +746,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
                     // Make sure we have a slot_id
                     if (!$slot_id) {
-                        $this->emDebug("No slot_id found for record $record with $config_key");
+                        $this->emDebug("No appointment slot_id found for record $record with $config_key");
                         throw new TimezoneException("No appointment id found for record $record with config $config_key");
                     }
 
@@ -694,7 +817,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
                 case "selectAvailableSlots":
                     // Return just the available appointment slots
-                    $this->emDebug("selectAvailableSlots called with payload: ", $payload);
                     $result = [
                         "success" => true,
                         "available_slots" => [] // $this->getAvailableSlots()
@@ -702,13 +824,36 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
 
                 case "cancelAppointment":
-                    $this->emDebug("cancelAppointment called with payload: ", $payload);
+                    // This is called from the form UI
                     $config_key = $payload['config_key'] ?? null;
                     $slot_id = $payload['slot_id'] ?? null;
-                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $instrument, $event_id, $repeat_instance);
+                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance);
                     $result = [
                         "success" => true,
                         "data" => $data
+                    ];
+                    break;
+                case "cancelAppointmentFromUrl":
+                    // Excepts only success and message in return.
+                    $key = $payload['key'] ?? null;
+                    $token = $payload['token'] ?? null;
+                    if (empty($key) && empty($token)) {
+                        throw new TimezoneException("Missing required parameters to cancel appointment");
+                    }
+                    list($config_key, $slot_id, $record, $event_id, $repeat_instance) = explode('|', decrypt($key));
+                    list($token_config_key, $token_ts) = explode('|', decrypt($token));
+                    if (strtotime('now') - $token_ts > 600) { // 10 minutes
+                        $this->emDebug("Cancel token has expired: " . (strtotime('now') - $token_ts) . " seconds old");
+                        throw new TimezoneException("The cancel appointment link has expired.  Please try again from the original URL.");
+                    }
+                    if ($config_key !== $token_config_key) {
+                        $this->emDebug("Config key from key does not match that of token: $config_key != $token_config_key");
+                        throw new TimezoneException("The cancel appointment link is invalid.  Please try again from the original URL or contact the study team.");
+                    }
+                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance);
+                    $result = [
+                        "success" => true,
+                        "message" => "Your appointment has been successfully canceled.  You may now close this window."
                     ];
                     break;
                 default:
@@ -760,6 +905,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // timeZone: "America/Los_Angeles"
         return $add_to_calendar_config;
     }
+
 
     // Inject HTML for timezone selector functionality
     public function injectHTML() {
@@ -908,6 +1054,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $this->config[$key] ?? false;
     }
 
+
     // Function to filter timezone configuration based on instrument and event and not disabled and return
     // minimal data to client module
     public function filter_tz_config($instrument, $event_id) {
@@ -932,6 +1079,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         }
         return $result;
     }
+
 
     // Builds an array of configured instances using field-event as a unique key
     private function load_tz_configs() {
@@ -961,8 +1109,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-
-
     /**
      * This function retrieves a DB lock
      *
@@ -982,6 +1128,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $status;
     }
 
+
     /**
      * This function releases the DB lock
      *
@@ -996,6 +1143,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $this->emDebug("Released Lock: " . $lock_name . ", with status " . $row[0]);
         }
     }
+
 
     /**
      * Injects a JavaScript Module Object (JSMO) into the page.
