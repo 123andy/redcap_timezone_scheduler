@@ -19,6 +19,57 @@
     // Extend the official JSMO with new methods for this EM
     Object.assign(module, {
 
+        // Used on the cancel.php page to handle the cancel appointment process
+        cancelPageRequest: function() {
+            module.debug("Cancel Page Request called");
+            module.debug(module.data);
+
+            $btn = $('#show-cancel-modal');
+            $msg = $('#cancel-msg');
+
+            var errors = module.data.errors || [];
+            if (errors.length > 0) {
+                module.debug("Errors found in cancel page request:", errors);
+                var msg = "The appointment cancellation page has encountered the following error(s):\n\n";
+                msg += errors.join("\n");
+
+                $btn.hide();
+                $msg.html("<div class='alert alert-danger fs-3'>" + msg.replace(/\n/g, '<br/>') + "</div>");
+                return;
+            }
+
+            // Show the modal when the cancel button is clicked
+            $modal = $('#cancelModal');
+
+            // Show modal button
+            $('#show-cancel-modal').on('click', function() {
+                module.debug("Show Cancel Appointment Modal button clicked");
+                var modal = new bootstrap.Modal($modal.get(0));
+                modal.show();
+            });
+
+            // Handle Modal Cancel Press
+            $('#cancel-appointment-button').on('click', function() {
+                module.debug("Cancel Appointment button clicked");
+                var payload = {
+                    'key': module.data.key,
+                    'token': module.data.token
+                };
+                module.ajax('cancelAppointmentFromUrl', payload).then(function(response) {
+                    module.debug('cancelAppointmentFromUrl response:', response);
+                    if (response.success) {
+                        $msg.html("<div class='alert alert-success fs-6'>" + response.message + "</div>");
+                        $btn.hide();
+                    } else {
+                        $msg.html("<div class='alert alert-danger fs-6'>Failed to cancel appointment:\n\n" + response.message + "</div>");
+                    }
+                }).catch(function (err) {
+                    module.debug("Error occurred while canceling appointment:", err);
+                    $msg.html("<div class='alert alert-danger fs-6'>An error occurred while trying to cancel your appointment.  Please try again later.</div>");
+                });
+            });
+        },
+
         init_atcb: function() {
             return false;
             // Initialize the add-to-calendar-button
@@ -440,6 +491,7 @@
                 module.ajax('getTimezones', []).then(function (response) {
                     // data = Object.entries(response.timezones).map(([k,v]) => ({id: v, text: v}));
                     data = response.data;
+                    module.debug('getTimezones response: ', data);
                     $select.select2({
                         width: '100%',
                         dropdownParent: $('#tz_select_timezone_modal'),
