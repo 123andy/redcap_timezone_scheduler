@@ -68,7 +68,7 @@ try {
     $objHtmlPage->PrintHeader();
     ?>
 
-    <h3>Cancel Appointment</h3>
+    <h3></h3>
 
     <div class="cancel-appointment">
 
