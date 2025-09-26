@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:redcap="https://projectredcap.org" xsi:schemaLocation="http://www.cdisc.org/ns/odm/v1.3 schema/odm/ODM1-3-1.xsd" ODMVersion="1.3.1" FileOID="000-00-0000" FileType="Snapshot" Description="Timezone Scheduler Slot Database Template" AsOfDateTime="2025-09-26T15:40:05" CreationDateTime="2025-09-26T15:40:05" SourceSystem="REDCap" SourceSystemVersion="15.3.3">
+<Study OID="Project.TimezoneSchedulerSlotDatabaseT">
+<GlobalVariables>
+	<StudyName>Timezone Scheduler Slot Database Template</StudyName>
+	<StudyDescription>This file contains the metadata, events, and data for REDCap project "Timezone Scheduler Slot Database Template".</StudyDescription>
+	<ProtocolName>Timezone Scheduler Slot Database Template</ProtocolName>
+	<redcap:RecordAutonumberingEnabled>1</redcap:RecordAutonumberingEnabled>
+	<redcap:CustomRecordLabel>[date] [time]</redcap:CustomRecordLabel>
+	<redcap:SecondaryUniqueField></redcap:SecondaryUniqueField>
+	<redcap:SecondaryUniqueFieldDisplayValue>0</redcap:SecondaryUniqueFieldDisplayValue>
+	<redcap:SecondaryUniqueFieldDisplayLabel>0</redcap:SecondaryUniqueFieldDisplayLabel>
+	<redcap:SchedulingEnabled>0</redcap:SchedulingEnabled>
+	<redcap:SurveysEnabled>0</redcap:SurveysEnabled>
+	<redcap:SurveyInvitationEmailField></redcap:SurveyInvitationEmailField>
+	<redcap:RandomizationEnabled>0</redcap:RandomizationEnabled>
+	<redcap:DisplayTodayNowButton>1</redcap:DisplayTodayNowButton>
+	<redcap:PreventBranchingEraseValues>0</redcap:PreventBranchingEraseValues>
+	<redcap:RequireChangeReason>0</redcap:RequireChangeReason>
+	<redcap:DataHistoryPopup>1</redcap:DataHistoryPopup>
+	<redcap:OrderRecordsByField></redcap:OrderRecordsByField>
+	<redcap:taskCompleteStatus>2</redcap:taskCompleteStatus>
+	<redcap:DataResolutionWorkflowEnabled>1</redcap:DataResolutionWorkflowEnabled>
+	<redcap:FieldCommentLogOptionEditDelete>1</redcap:FieldCommentLogOptionEditDelete>
+	<redcap:DataResolutionWorkflowHideClosedQueries>0</redcap:DataResolutionWorkflowHideClosedQueries>
+	<redcap:MyCapEnabled>0</redcap:MyCapEnabled>
+	<redcap:Purpose>4</redcap:Purpose>
+	<redcap:PurposeOther></redcap:PurposeOther>
+	<redcap:ProjectNotes></redcap:ProjectNotes>
+	<redcap:MissingDataCodes></redcap:MissingDataCodes>
+	<redcap:ProtectedEmailMode>0</redcap:ProtectedEmailMode>
+	<redcap:ProtectedEmailModeCustomText>REDCap Secure Messaging</redcap:ProtectedEmailModeCustomText>
+	<redcap:ProtectedEmailModeTrigger>ALL</redcap:ProtectedEmailModeTrigger>
+	<redcap:ProtectedEmailModeLogo></redcap:ProtectedEmailModeLogo>
+	<redcap:ReportsGroup>
+		<redcap:Reports title="Past Appointments" unique_report_name="R-3618JALHWA" report_order="1" user_access="ALL" user_edit_access="ALL" description="&lt;p&gt;&lt;br data-mce-bogus=&quot;1&quot;&gt;&lt;/p&gt;" combine_checkbox_values="0" output_dags="0" output_survey_fields="0" output_missing_data_codes="0" remove_line_breaks_in_values="1" orderby_field1="date" orderby_sort1="ASC" orderby_field2="time" orderby_sort2="ASC" orderby_field3="" orderby_sort3="" advanced_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &lt; 0 and [reserved_ts] &lt;&gt; &#039;&#039;" filter_type="EVENT" dynamic_filter1="" dynamic_filter2="" dynamic_filter3="" hash="LTCLPXN7ARRYE8FK" short_url="" is_public="0" report_display_include_repeating_fields="1" report_display_header="BOTH" report_display_data="BOTH" limiter_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &lt; 0 and [reserved_ts] &lt;&gt; &#039;&#039;" redcap_reports_fields="slot_id,title,date,time,project_filter,reserved_ts,source_project_id,source_record_id,source_field" redcap_reports_filter_dags="" redcap_reports_filter_events="" ID="bd307a3ec329e10a2cff8fb87480823da114f8f4"/>
+		<redcap:Reports title="Upcoming Appointments" unique_report_name="R-8527EMX8DF" report_order="2" user_access="ALL" user_edit_access="ALL" description="&lt;p&gt;&lt;br data-mce-bogus=&quot;1&quot;&gt;&lt;/p&gt;" combine_checkbox_values="0" output_dags="0" output_survey_fields="0" output_missing_data_codes="0" remove_line_breaks_in_values="1" orderby_field1="date" orderby_sort1="ASC" orderby_field2="time" orderby_sort2="ASC" orderby_field3="" orderby_sort3="" advanced_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &gt; 0 AND [reserved_ts] &lt;&gt; &#039;&#039;" filter_type="EVENT" dynamic_filter1="" dynamic_filter2="" dynamic_filter3="" hash="KA7FMW4R7AWLWYMM" short_url="" is_public="0" report_display_include_repeating_fields="1" report_display_header="BOTH" report_display_data="BOTH" limiter_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &gt; 0 AND [reserved_ts] &lt;&gt; &#039;&#039;" redcap_reports_fields="slot_id,title,date,time,project_filter,reserved_ts,source_project_id,source_record_id,source_field" redcap_reports_filter_dags="" redcap_reports_filter_events="" ID="fa35e192121eabf3dabf9f5ea6abdbcbc107ac3b"/>
+		<redcap:Reports title="Upcoming Slots Available" unique_report_name="R-153YLMNNRY" report_order="3" user_access="ALL" user_edit_access="ALL" description="&lt;p&gt;&lt;br data-mce-bogus=&quot;1&quot;&gt;&lt;/p&gt;" combine_checkbox_values="0" output_dags="0" output_survey_fields="0" output_missing_data_codes="0" remove_line_breaks_in_values="1" orderby_field1="date" orderby_sort1="ASC" orderby_field2="time" orderby_sort2="ASC" orderby_field3="" orderby_sort3="" advanced_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &gt; 0 AND [reserved_ts] = &#039;&#039;" filter_type="EVENT" dynamic_filter1="" dynamic_filter2="" dynamic_filter3="" hash="YCW7XJPCPJMDNRHT" short_url="" is_public="0" report_display_include_repeating_fields="1" report_display_header="BOTH" report_display_data="BOTH" limiter_logic="datediff(&quot;TODAY&quot;, [date], &quot;d&quot;, true) &gt; 0 AND [reserved_ts] = &#039;&#039;" redcap_reports_fields="slot_id,title,date,time,project_filter,reserved_ts,source_project_id,source_record_id,source_field" redcap_reports_filter_dags="" redcap_reports_filter_events="" ID="f1abd670358e036c31296e66b3b66c382ac00812"/>
+	</redcap:ReportsGroup>
+	<redcap:ProjectDashboardsGroup>
+		<redcap:ProjectDashboards title="Appointment Slot Overview" body="&lt;p&gt; &lt;/p&gt;
+&lt;h5&gt;&lt;strong&gt;Upcoming Available Slots: [aggregate-count:slot_id:R-153YLMNNRY]&lt;/strong&gt;&lt;/h5&gt;
+&lt;h5&gt;&lt;strong&gt;Upcoming Appointments: [aggregate-count:slot_id:R-8527EMX8DF]&lt;/strong&gt;&lt;/h5&gt;" dash_order="1" user_access="ALL" is_public="0" ID="1b6453892473a467d07372d45eb05abc2031647a"/>
+	</redcap:ProjectDashboardsGroup>
+</GlobalVariables>
+<MetaDataVersion OID="Metadata.TimezoneSchedulerSlotDatabaseT_2025-09-26_1540" Name="Timezone Scheduler Slot Database Template" redcap:RecordIdField="slot_id">
+	<FormDef OID="Form.slots" Name="Slots" Repeating="No" redcap:FormName="slots">
+		<ItemGroupRef ItemGroupOID="slots.slot_id" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.title" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.date" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.reserved_ts" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.source_project_id" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.slots_complete" Mandatory="No"/>
+	</FormDef>
+	<ItemGroupDef OID="slots.slot_id" Name="Slots" Repeating="No">
+		<ItemRef ItemOID="slot_id" Mandatory="No" redcap:Variable="slot_id"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.title" Name="FILL THIS INFORMATION OUT AHEAD OF TIME FOR EVERY POTENTIAL APPOINTMENT SLOT
+
+It is recommended you import a csv with new slots.  Do not REUSE slot_id numbers when uploading new records." Repeating="No">
+		<ItemRef ItemOID="title" Mandatory="No" redcap:Variable="title"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.date" Name="Slots" Repeating="No">
+		<ItemRef ItemOID="date" Mandatory="Yes" redcap:Variable="date"/>
+		<ItemRef ItemOID="time" Mandatory="Yes" redcap:Variable="time"/>
+		<ItemRef ItemOID="project_filter" Mandatory="No" redcap:Variable="project_filter"/>
+		<ItemRef ItemOID="slot_filter" Mandatory="No" redcap:Variable="slot_filter"/>
+		<ItemRef ItemOID="custom_field_1" Mandatory="No" redcap:Variable="custom_field_1"/>
+		<ItemRef ItemOID="delete_warning" Mandatory="No" redcap:Variable="delete_warning"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.reserved_ts" Name="RESERVATION DETAILS
+
+The following information is automatically filled in from the linked appointment project" Repeating="No">
+		<ItemRef ItemOID="reserved_ts" Mandatory="No" redcap:Variable="reserved_ts"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.source_project_id" Name="Slots" Repeating="No">
+		<ItemRef ItemOID="source_project_id" Mandatory="No" redcap:Variable="source_project_id"/>
+		<ItemRef ItemOID="source_record_id" Mandatory="No" redcap:Variable="source_record_id"/>
+		<ItemRef ItemOID="source_field" Mandatory="No" redcap:Variable="source_field"/>
+		<ItemRef ItemOID="source_event_id" Mandatory="No" redcap:Variable="source_event_id"/>
+		<ItemRef ItemOID="source_instance_id" Mandatory="No" redcap:Variable="source_instance_id"/>
+		<ItemRef ItemOID="source_record_url" Mandatory="No" redcap:Variable="source_record_url"/>
+		<ItemRef ItemOID="participant_timezone" Mandatory="No" redcap:Variable="participant_timezone"/>
+		<ItemRef ItemOID="participant_description" Mandatory="No" redcap:Variable="participant_description"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.slots_complete" Name="Form Status" Repeating="No">
+		<ItemRef ItemOID="slots_complete" Mandatory="No" redcap:Variable="slots_complete"/>
+	</ItemGroupDef>
+	<ItemDef OID="slot_id" Name="slot_id" DataType="text" Length="999" redcap:Variable="slot_id" redcap:FieldType="text">
+		<Question><TranslatedText>Slot ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="title" Name="title" DataType="text" Length="999" redcap:Variable="title" redcap:FieldType="text" redcap:FieldNote="If set, this will appear with the appointment when a user is selecting" redcap:SectionHeader="FILL THIS INFORMATION OUT AHEAD OF TIME FOR EVERY POTENTIAL APPOINTMENT SLOT
+
+It is recommended you import a csv with new slots.  Do not REUSE slot_id numbers when uploading new records.">
+		<Question><TranslatedText>Title / Description (optional)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="date" Name="date" DataType="date" Length="999" redcap:Variable="date" redcap:FieldType="text" redcap:TextValidationType="date_ymd" redcap:FieldNote="This uses the server&#039;s timezone" redcap:RequiredField="y">
+		<Question><TranslatedText>Date</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="time" Name="time" DataType="partialTime" Length="999" redcap:Variable="time" redcap:FieldType="text" redcap:TextValidationType="time" redcap:FieldNote="This uses the server&#039;s timezone" redcap:RequiredField="y">
+		<Question><TranslatedText>Time</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="project_filter" Name="project_filter" DataType="integer" Length="999" redcap:Variable="project_filter" redcap:FieldType="text" redcap:TextValidationType="int" redcap:FieldNote="if set, only the specified project ID will be able to reserve these slots.   If blank, then any project can use the slot.">
+		<Question><TranslatedText>Project FilterIf set, only projects from the set project id will be able to use this slot
+</TranslatedText><redcap:FormattedTranslatedText>Project Filter&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only projects from the set project id will be able to use this slot&lt;/div&gt;
+</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="slot_filter" Name="slot_filter" DataType="text" Length="999" redcap:Variable="slot_filter" redcap:FieldType="text" redcap:FieldNote="If set, only slots with a value that matches the value of a specified &lt;code&gt;slot-filter-field&lt;/code&gt; in the appointment project will be returned">
+		<Question><TranslatedText>Slot Filter
+If set, only slots with a value that matches the value of a specified slot-filter-field in the appointment project will be returned</TranslatedText><redcap:FormattedTranslatedText>Slot Filter
+&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only slots with a value that matches the value of a specified &lt;code&gt;slot-filter-field&lt;/code&gt; in the appointment project will be returned&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="custom_field_1" Name="custom_field_1" DataType="text" Length="999" redcap:Variable="custom_field_1" redcap:FieldType="text" redcap:FieldNote="you can add other fields to this project if you like..." redcap:FieldAnnotation="Add whatever custom fields you feel you need -- they will be ignored by the scheduler tool.">
+		<Question><TranslatedText>Custom Fields</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="delete_warning" Name="delete_warning" DataType="text" Length="999" redcap:Variable="delete_warning" redcap:FieldType="descriptive" redcap:BranchingLogic="[source_record_url] &lt;&gt; &#039;&#039;">
+		<Question><TranslatedText>Because this slot is reserved, you should not delete this slot before clearing the appointment.  
+
+To clear a reserved slot, first visit the appointment record and cancel the appointment.  Then return and this warning should no longer be here and it is save to remove the slot.
+
+Goto Source Appointment Record</TranslatedText><redcap:FormattedTranslatedText>&lt;div class=&#039;alert alert-warning&#039;&gt;Because this slot is reserved, you should not delete this slot before clearing the appointment.  
+
+To clear a reserved slot, first visit the appointment record and cancel the appointment.  Then return and this warning should no longer be here and it is save to remove the slot.
+
+&lt;a href=&#039;[source_record_url]&#039; target=&#039;_blank&#039;&gt;&lt;span class=&#039;p-2 button btn-primaryrc btn-xs&#039;&gt;Goto Source Appointment Record&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="reserved_ts" Name="reserved_ts" DataType="datetime" Length="999" redcap:Variable="reserved_ts" redcap:FieldType="text" redcap:TextValidationType="datetime_seconds_ymd" redcap:FieldNote="server timezone" redcap:SectionHeader="RESERVATION DETAILS
+
+The following information is automatically filled in from the linked appointment project">
+		<Question><TranslatedText>Reserved Timestamp</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_project_id" Name="source_project_id" DataType="integer" Length="999" redcap:Variable="source_project_id" redcap:FieldType="text" redcap:TextValidationType="int" redcap:FieldNote="project that claimed slot">
+		<Question><TranslatedText>Source Project ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_record_id" Name="source_record_id" DataType="text" Length="999" redcap:Variable="source_record_id" redcap:FieldType="text" redcap:FieldNote="record that claimed slot">
+		<Question><TranslatedText>Source Record ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_field" Name="source_field" DataType="text" Length="999" redcap:Variable="source_field" redcap:FieldType="text" redcap:FieldNote="appointment field in source project">
+		<Question><TranslatedText>Source Field</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_event_id" Name="source_event_id" DataType="text" Length="999" redcap:Variable="source_event_id" redcap:FieldType="text">
+		<Question><TranslatedText>Source Event Id</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_instance_id" Name="source_instance_id" DataType="text" Length="999" redcap:Variable="source_instance_id" redcap:FieldType="text">
+		<Question><TranslatedText>Source Instance ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_record_url" Name="source_record_url" DataType="text" Length="999" redcap:Variable="source_record_url" redcap:FieldType="text" redcap:FieldNote="Link to source record: &lt;a href=&#039;[source_record_url]&#039; target=&#039;_BLANK&#039;&gt;Goto Record&lt;/a&gt;">
+		<Question><TranslatedText>Source Record URL Goto Appointment Record</TranslatedText><redcap:FormattedTranslatedText>Source Record URL &lt;a href=&#039;[source_record_url]&#039; target=&#039;_blank&#039; class=&#039;ml-3&#039;&gt;&lt;span class=&#039;p-1 badge bg-primary&#039;&gt;Goto Appointment Record&lt;/span&gt;&lt;/a&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="participant_timezone" Name="participant_timezone" DataType="text" Length="999" redcap:Variable="participant_timezone" redcap:FieldType="text" redcap:FieldNote="timezone of user when they reserved this slot">
+		<Question><TranslatedText>Participant Timezone</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="participant_description" Name="participant_description" DataType="text" Length="999" redcap:Variable="participant_description" redcap:FieldType="textarea" redcap:FieldNote="Appointment description when reserved as configured in source project EM">
+		<Question><TranslatedText>Participant Description</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="slots_complete" Name="slots_complete" DataType="text" Length="1" redcap:Variable="slots_complete" redcap:FieldType="select" redcap:SectionHeader="Form Status">
+		<Question><TranslatedText>Complete?</TranslatedText></Question>
+		<CodeListRef CodeListOID="slots_complete.choices"/>
+	</ItemDef>
+	<CodeList OID="slots_complete.choices" Name="slots_complete" DataType="text" redcap:Variable="slots_complete">
+		<CodeListItem CodedValue="0"><Decode><TranslatedText>Incomplete</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="1"><Decode><TranslatedText>Unverified</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="2"><Decode><TranslatedText>Complete</TranslatedText></Decode></CodeListItem>
+	</CodeList>
+</MetaDataVersion>
+</Study>
+</ODM>
