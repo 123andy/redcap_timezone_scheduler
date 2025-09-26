@@ -66,7 +66,7 @@
     "project-settings": [
         {
             "key": "instructions",
-            "name": "<b>Instructions</b><br>This module allows participants to select appointments from a separate REDCap project that acts as an 'Appointment Slot Database'.  In this project, the appointment is stored as a 'slot_id' from the Slot database.  You can optionally store additional information in other fields.<br/><br/>Please see the sidebar link added to the project (only visible to users with design rights)",
+            "name": "<div style='width:90%'><b>Timezone Scheduler Instructions</b><br>This module allows participants to select appointments from a separate REDCap project that acts as an <b>Appointment Slot Database</b>.  In this project, the appointment is stored as a <code>slot_id</code> from the Slot database.  You can optionally store additional information about the appointment, such as date, description, cancel url, and more in other fields.<br/><br/>Please see the sidebar link added to the project (only visible to users with design rights) for more information</div>",
             "type": "descriptive"
         },
         {
@@ -158,12 +158,6 @@
                     "required": false,
                     "type": "field-list",
                     "field-type": "text"
-                },
-                {
-                    "key": "slot-filter-expression",
-                    "name": "<b>Filter Expression</b><br>(to be developed) -- idea is that you could enter expression here that would be evaluated with the record's data and could be used to select a subset of available slots in the other database...",
-                    "required": false,
-                    "type": "text"
                 },
                 {
                     "key": "disabled",
