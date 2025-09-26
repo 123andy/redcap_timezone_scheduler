@@ -62,6 +62,7 @@
                         $btn.hide();
                     } else {
                         $msg.html("<div class='alert alert-danger fs-6'>Failed to cancel appointment:\n\n" + response.message + "</div>");
+                        $btn.hide();
                     }
                 }).catch(function (err) {
                     module.debug("Error occurred while canceling appointment:", err);

@@ -363,7 +363,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    public function cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance) {
+    public function cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance, $allow_cancel_past_appointments=false) {
         $this->emDebug("cancelAppointment called with config_key: $config_key, slot_id: $slot_id, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
@@ -378,6 +378,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         if (empty($slot)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to clearing slot");
             throw new TimezoneException("Unable to locate the requested slot - please try again.");
+        }
+
+        $now = new DateTime("now");
+        $server_dt = new DateTime($slot['date'] . ' ' . $slot['time']);
+        if($now > $server_dt && !$allow_cancel_past_appointments) {
+            $this->emError("Unable to cancel slot_id $slot_id because it is in the past: " . $slot['date'] . ' ' . $slot['time']);
+            throw new TimezoneException("Only users with design rights can cancel the requested slot because it occurs in the past.");
         }
 
         // Clear out the reservation fields
@@ -785,13 +792,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     //     "success" => true,
                     //     "data" => $appointments[0] ?? null
                     // ];
-
                     break;
-                // case "saveAppointment":
-                //     // Save an appointment after selection
-                //     $this->emDebug("saveAppointment called with payload: ", $payload);
-                //     $result = $this->saveAppointment($payload['field_name'], $payload['slot_id'], $payload['timezone']);
-                //     break;
 
                 case "reserveSlot":
                     // Reserve a specific appointment slot
@@ -815,24 +816,22 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         "message" => "Slot selected successfully"
                     ];
                     break;
-                case "selectAvailableSlots":
-                    // Return just the available appointment slots
-                    $result = [
-                        "success" => true,
-                        "available_slots" => [] // $this->getAvailableSlots()
-                    ];
-                    break;
 
                 case "cancelAppointment":
                     // This is called from the form UI
                     $config_key = $payload['config_key'] ?? null;
                     $slot_id = $payload['slot_id'] ?? null;
-                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance);
+                    $has_design_rights = ($this->isAuthenticated() && $this->getUser()->hasDesignRights());
+                    if (!$has_design_rights) {
+                        throw new TimezoneException("Only users with design rights can cancel appointments from the form interface.");
+                    }
+                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance, $has_design_rights);
                     $result = [
                         "success" => true,
                         "data" => $data
                     ];
                     break;
+
                 case "cancelAppointmentFromUrl":
                     // Excepts only success and message in return.
                     $key = $payload['key'] ?? null;
@@ -850,7 +849,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         $this->emDebug("Config key from key does not match that of token: $config_key != $token_config_key");
                         throw new TimezoneException("The cancel appointment link is invalid.  Please try again from the original URL or contact the study team.");
                     }
-                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance);
+                    $allow_cancel_past_appointments = ($this->isAuthenticated() && $this->getUser()->hasDesignRights());
+                    $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance, $allow_cancel_past_appointments);
                     $result = [
                         "success" => true,
                         "message" => "Your appointment has been successfully canceled.  You may now close this window."
