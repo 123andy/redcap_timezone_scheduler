@@ -821,9 +821,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     // This is called from the form UI
                     $config_key = $payload['config_key'] ?? null;
                     $slot_id = $payload['slot_id'] ?? null;
+                    $this->emDebug("cancelAppointment called with payload: ", $payload, $this->isSurveyPage(), $this->isAuthenticated(), $survey_hash);
                     $has_design_rights = ($this->isAuthenticated() && $this->getUser()->hasDesignRights());
-                    if (!$has_design_rights) {
-                        throw new TimezoneException("Only users with design rights can cancel appointments from the form interface.");
+                    if (!$this->isSurveyPage() && !$has_design_rights) {
+                        throw new TimezoneException("Only users with design rights can cancel appointments from the data entry form user interface.");
                     }
                     $data = $this->cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance, $has_design_rights);
                     $result = [
@@ -861,13 +862,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     throw new Exception ("Action $action is not defined");
             }
          } catch (TimezoneException $e) {
-            $this->emError("TimezoneException caught in redcap_module_ajax for action $action: " . $e->getMessage(), $e, $payload);
+            $this->emError("TimezoneException caught in redcap_module_ajax for action $action: " . $e->getMessage(), $payload);
             $result = [
                 "success" => false,
                 "message" => $e->getMessage()
             ];
         } catch (Exception $e) {
-            $this->emError("Unknown Exception caught in redcap_module_ajax for action $action: " . $e->getMessage(), $e, $payload);
+            $this->emError("Unknown Exception caught in redcap_module_ajax for action $action: " . $e->getMessage(), $payload);
             $result = [
                 "success" => false,
                 "message" => "An exception occurred -- please check the server logs"

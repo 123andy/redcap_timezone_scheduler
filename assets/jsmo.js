@@ -302,7 +302,7 @@
                 module.debug('cancelAppointment response:', response);
                 if (!response.success) {
                     module.debug("Failed to cancel appointment:", response);
-                    module.notify('Unable to cancel appointment:\n\n' + response.message);
+                    module.notify('Cancel Exception', 'Unable to cancel appointment:\n\n' + response.message);
                     return;
                 }
 
