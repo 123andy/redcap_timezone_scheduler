@@ -196,6 +196,40 @@
 
         },
 
+
+        focusOnNextField: function(field) {
+
+            var $focused = $(document.activeElement);
+            var isVisible = $focused.is(':visible');
+            var isButton = $focused.is(':button');
+            var isBodyModal = $focused.is('body.modal-open');
+            if (isVisible && !isButton && !isBodyModal) {
+                module.debug("Focus is already on a visible non-button, non modal element:", $focused);
+                return;
+            }
+
+            $currentElement = $('input[name="' + field + '"]');
+            if ($currentElement.length === 0) {
+                module.debug("No input field found for:", field);
+                return;
+            }
+            $($currentElement).each(function() {
+                var fields = $(this).closest('form').find('input, select, textarea');
+                var index = fields.index(this);
+                module.debug("Focusing on next field after:", field, index, fields.length);
+
+                // loop through fields to find the next visible one
+                for (var i = index + 1; i < fields.length; i++) {
+                    if (fields.eq(i).is(':visible') && fields.eq(i).is(':enabled')) {
+                        module.debug("Focusing " + field + " on next field:", fields.eq(i).attr('name'));
+                        fields.eq(i).focus();
+                        break;
+                    }
+                }
+            });
+        },
+
+
         addToCalendar: function(field) {
             // $input = module.data.config[field]['$input'];
             // module.debug('Field:', field, '$input:', $input);
@@ -400,8 +434,11 @@
                     module.updateContainer(field);
                 } else {
                     module.debug("Failed to reserve slot:", response);
-                    alert('failed - unable to reserve selected appointment:\n\n' + option_selected['text'] + '\n\nPlease try again.');
+                    module.notify('Reservation Exception', 'Unable to reserve the selected appointment:\n\n' + response.message ?? 'Unknown error');
+                    // alert('failed - unable to reserve selected appointment:\n\n' + option_selected['text'] + '\n\nPlease try again.');
+                    // module.debug("Refreshing appointment selector");
                     module.refreshAppointmentSelector();  // or do we click the select button again?
+                    // module.debug("Refreshed appointment selector");
                 }
             }).catch(function (err) {
                 module.debug("Error reserving slot:", err);
@@ -574,7 +611,6 @@
                             $input.data('slot_timezone', response.data.timezone);
                             // $input.data('add_to_calendar_config', response.data.add_to_calendar_config);
                             $input.data('add_to_calendar_config', response.data.add_to_calendar_config);
-
                             module.debug('Config:', response.data.add_to_calendar_config);
 
                             // var d = '<add-to-calendar-button';
@@ -599,6 +635,9 @@
                             //     module.debug("Error initializing add-to-calendar button:", e);
                             // }
                             // $('.add-to-calendar-span', $container).html(response.data.add_to_calendar_html);
+
+                            // module.focusOnNextField(field);
+
                             module.updateContainer(field);  // Recurse once
                         } else {
                             module.notify('Exception', 'Unable to load appointment data for ' + field + ':\n\n' + response.message ?? 'Unknown error');
@@ -613,13 +652,17 @@
                     $('.appt-text', $container).html(slot_text.replace(/\n/g, '<br/>'));
                 }
                 $('.display-value', $container).show();
-                module.init_atcb();
+                // module.init_atcb();
                 $('.select-value', $container).hide();
             } else {
                 mode = 'select';
                 $('.display-value', $container).hide();
                 $('.select-value', $container).show();
             }
+
+            // Disabling focus on next field for now as it is causing problems
+            // module.focusOnNextField(field);
+
         },
 
 
