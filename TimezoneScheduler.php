@@ -987,15 +987,16 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 </div>
             </div>
 
-            <div id="tz_select_confirm_modal" aria-modal="true" class="modal fade" id="confirmModal" tabindex="-1">
+            <!-- Modal for confirming actions -->
+            <div id="tz_select_confirm_modal" aria-modal="true" class="modal top-modal fade" id="confirmModal" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Template Header</h5>
+                        <h5 class="modal-title">Template Title</h5>
                         <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
                     </div>
                     <div class="modal-body">
-                        Template Notification
+                        Template Body
                     </div>
                     <div class="modal-footer">
                         <button type="button" data-action="cancel" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" >Go Back</button>
@@ -1033,6 +1034,23 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 /** add a line border between dates in the select2 dropdown */
                 li.select2-results__option {
                     border-top: 1px solid #eee;
+                }
+
+                /* Style for top modal */
+                .top-modal {
+                    z-index: 1061 !important;
+                }
+
+                .top-modal .modal-content {
+                    border-color: black;
+                    border-width: 2px;
+                }
+
+                .top-modal .modal-header {
+                    background-color: #ffc1074c; /* Yellow with alpha for emphasis */
+                    /* border-width: 0.3rem; */
+                    /* color: white; */
+                    /* border-bottom: 1px solid #DC3545; */
                 }
             </style>
         <?php
