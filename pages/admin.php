@@ -5,6 +5,16 @@ use DateTime;
 use DateTimeZone;
 /** @var TimezoneScheduler $module */
 
+?>
+
+<h3>Timezone Scheduler Admin Page</h3>
+<p>This is currently a testing area for development -- in the final version we could put documentation or, potentially,
+    we could build a better user interface for managing the module settings.</p>
+<hr/>
+
+<?php
+
+
 
 // Replace this with your module code
 echo "Hello from $module->PREFIX";
@@ -14,14 +24,27 @@ echo "<br/>";
 echo $module->getUrl("pages/cancel.php", true);
 
 
-$p = $module->getProjectSetting('timezone_database');
-echo "<br/>Project Setting timezone_database: " . ($p ? $p : "not set");
+// $p = $module->getProjectSetting('timezone-database');
+// echo "<br/>Project Setting timezone-database: " . ($p ? $p : "not set");
+// $q = $module->getTimezoneList();
+// echo "<br/>Timezone List count: " . count($q);
+// echo "<pre>";
+// print_r($q);
+// echo "</pre>";
 
-$q = $module->getTimezoneList();
-echo "<br/>Timezone List count: " . count($q);
-echo "<pre>";
-print_r($q);
-echo "</pre>";
+
+if ($module->isAuthenticated() && $module->getUser()->hasDesignRights()) {
+    echo "<br/>User is authenticated and has design rights.";
+} else {
+    echo "<br/>User is NOT authenticated or does NOT have design rights.";
+}
+
+if($module->isAuthenticated()){
+    echo "<br/>Is Authenticated!";
+    $user = $module->getUser();
+    $module->emDebug("User is authenticated: ", $user, $user->hasDesignRights());
+    // $rights = $module->getRights($user->getU)
+}
 
 exit();
 
