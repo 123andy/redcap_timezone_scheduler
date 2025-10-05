@@ -20,6 +20,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     const DEFAULT_APPT_DESCRIPTION_FORMAT = "{title} (#{slot_id})\n{client-nicedate} at {client-time} {client-tza}<==\n({server-time} {server-tza})==>";
     const DEFAULT_APPT_BUTTON_LABEL = "Select An Appointment";
 
+    public $lock_name = '';
 
     // For client fields, we need many more formats to match REDCap client validation
     const VALIDATION_CLIENT_CONVERSION_INDEX = [
@@ -45,6 +46,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         'datetime_seconds_ymd' => 'Y-m-d H:i:s',
         'datetime_seconds_dmy' => 'Y-m-d H:i:s',
         'datetime_seconds_mdy' => 'Y-m-d H:i:s'
+    ];
+
+    const RESERVED_FIELD_NAMES = [
+        'redcap_event_name',
+        'redcap_repeat_instrument',
+        'redcap_repeat_instance'
     ];
 
     public function redcap_data_entry_form( int $project_id, $record, string $instrument, int $event_id, $group_id, $repeat_instance ) {
@@ -87,6 +94,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
      */
     public function getCurrentAppointmentId($config_key, $record, $event_id, $repeat_instance) {
         $this->emDebug("getCurrentAppointmentId called with config_key: $config_key, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
+
+        // Get the slot_id from the current record
+        $data = $this->getRecord($config_key, $record, $event_id, $repeat_instance);
+
         $config = $this->get_tz_config($config_key);
         $slot_id_field = $config['appt-field'] ?? null;
 
@@ -95,60 +106,135 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             throw new TimezoneException("Invalid configuration - missing slot id field for config_key: $config_key");
         }
 
-        // Get the slot_id from the current record
-        // TODO -- handle repeat instances?  switch to json?
-        $redcap_data = REDCap::getData('array', [$record], [$slot_id_field], $event_id);
-        // $this->emDebug("Redcap data for record $record: ", $redcap_data);
-        if (empty($redcap_data) || empty($redcap_data[$record]) || empty($redcap_data[$record][$event_id]) || empty($redcap_data[$record][$event_id][$slot_id_field])) {
-            $this->emDebug("No slot_id found for record $record in event $event_id in field $slot_id_field", $redcap_data);
-            throw new TimezoneException("No slot_id found for record $record in event $event_id in field $slot_id_field");
-        }
-        $slot_id = $redcap_data[$record][$event_id][$slot_id_field] ?? null;
-
-        // if (empty($slot_id)) {
-        //     $this->emDebug("Empty slot_id found for record $record in field $slot_id_field");
-        //     throw new TimezoneException("Empty slot_id found for record $record in field $slot_id_field");
-        // }
-
+        $slot_id = $data[$slot_id_field] ?? null;
         return $slot_id;
     }
 
-    public function getCancelUrl($config_key, $record, $event_id, $repeat_instance) {
+    /**
+     * Get the full record data for the current record - handles repeating forms if needed
+     * @param string $config_key The configuration key to use
+     * @param int $record The record id
+     * @param int $event_id The event id
+     * @param int $repeat_instance The repeat instance
+     * @return array The record data as an associative array or empty array if not found
+     * @throws TimezoneException with any errors encountered
+     */
+    public function getRecord($config_key, $record, $event_id, $repeat_instance) {
         $config = $this->get_tz_config($config_key);
         $slot_id_field = $config['appt-field'] ?? null;
-
-        if (empty($slot_id_field)) {
-            $this->emError("Invalid configuration - missing slot id field for config_key: $config_key", $config);
-            throw new TimezoneException("Invalid configuration - missing slot id field for config_key: $config_key");
-        }
-
-        // Get the slot_id from the current record
-        // TODO -- handle repeat instances?  switch to json?
-        $redcap_data = REDCap::getData('array', [$record], [$slot_id_field], $event_id);
-        // $this->emDebug("Redcap data for record $record: ", $redcap_data);
-        if (empty($redcap_data) || empty($redcap_data[$record]) || empty($redcap_data[$record][$event_id]) || empty($redcap_data[$record][$event_id][$slot_id_field])) {
-            $this->emDebug("No slot_id found for record $record in event $event_id in field $slot_id_field", $redcap_data);
-            throw new TimezoneException("No slot_id found for record $record in event $event_id in field $slot_id_field");
-        }
-        $slot_id = $redcap_data[$record][$event_id][$slot_id_field] ?? null;
-
-        if (empty($slot_id)) {
-            $this->emDebug("Empty slot_id found for record $record in field $slot_id_field");
-            throw new TimezoneException("Empty slot_id found for record $record in field $slot_id_field");
-        }
-
-        // Build cancel URL
-        // Example: https://redcap.local/redcap_v15.3.3/ExternalModules/?prefix=timezone_scheduler&page=cancel&key=abcdef&config=default&pid=38&record=1&event_id=88&instance=1
+        $slot_id_field_form = $this->getFormForField($slot_id_field);
+        $is_repeating = in_array($slot_id_field_form, $this->getRepeatingForms($event_id));
+        //$valid_fields = array_merge( self::RESERVED_FIELD_NAMES, REDCap::getFieldNames($slot_id_field_form), [$slot_id_field_form . '_complete']);
         $params = [
-            'prefix' => $this->PREFIX,
-            'page' => 'cancel',
-            'key' => $this->getSystemSetting('cancel-key'),
-            'config' => $config_key,
-            'pid' => $this->getProjectId(),
-            'record' => $record,
-            'event_id' => $event_id,
+            'return_format' => 'json',
+            'records' => $record,
+            'events' => $event_id
         ];
+        try {
+            $q = REDCap::getData($params);
+            $qa = json_decode($q, true);
+        } catch (Exception $e) {
+            $this->emError("Error retrieving record $record for config_key $config_key: " . $e->getMessage());
+            throw new TimezoneException("Error retrieving record $record for config_key $config_key.  Please check the system logs for details.");
+        }
+
+        if (!empty($qa['errors'])) {
+            $this->emError("Error retrieving record $record for config_key $config_key: ", $qa['errors']);
+            throw new TimezoneException("Error retrieving record $record for config_key $config_key.  Please check the system logs for details.");
+        }
+
+        // Loop through responses to find proper instance/entry
+        // $this->emDebug("Redcap data for record $record: ", $qa);
+        $result = [];
+        foreach ($qa as $entry) {
+            // TODO: Consider removing any fields other than 'special ones' that are not from the current form -- something REDCap should normally do automatically...
+
+            // $this->emDebug("Entry: ", $entry);
+            if ($is_repeating
+                && $entry['redcap_repeat_instrument'] == $slot_id_field_form
+                && $entry['redcap_repeat_instance'] == $repeat_instance
+            ) {
+                $this->emDebug("Found entry:", array_filter($entry));
+                $result = $entry;
+                break;
+            } elseif (
+                !$is_repeating
+                && $entry['redcap_repeat_instrument'] == ""
+                && $entry['redcap_repeat_instance'] == ""
+            ) {
+                // Found the correct non-repeating form entry
+                $this->emDebug("Found correct non-repeating entry:", array_filter($entry));
+                $result = $entry;
+                break;
+            } else {
+                $this->emDebug("Skipping non-matching entry:", array_filter($entry));
+            }
+        }
+
+        if (empty($result)) {
+            $this->emError("Unable to locate record $record for config_key $config_key with event_id $event_id and repeat_instance $repeat_instance", $qa);
+            throw new TimezoneException("Unable to locate record $record for config_key $config_key.  Please check the system logs for details.");
+        }
+        return $result;
     }
+
+
+    // public function getCancelUrl($config_key, $record, $event_id, $repeat_instance) {
+    //     $config = $this->get_tz_config($config_key);
+    //     $slot_id_field = $config['appt-field'] ?? null;
+
+    //     if (empty($slot_id_field)) {
+    //         $this->emError("Invalid configuration - missing slot id field for config_key: $config_key", $config);
+    //         throw new TimezoneException("Invalid configuration - missing slot id field for config_key: $config_key");
+    //     }
+
+    //     // Get the slot_id from the current record
+    //     // TODO -- handle repeat instances?  switch to json?
+    //     // Is the field in a repeating form?
+    //     // $slot_id_field_form = $this->getFormForField($slot_id_field);
+    //     // $is_repeating = in_array($slot_id_field_form, $this->getRepeatingForms($event_id));
+    //     // $params = [
+    //     //     'return_format' => 'json',
+    //     //     'records' => $record,
+    //     //     'events' => $event_id
+    //     // ];
+    //     // $q = REDCap::getData($params);
+    //     // $qa = json_decode($q, true);
+    //     // // For a classical project, there should be only one entry in the resulting array
+    //     // // For a repeating or longitudinal, there could be multiple entries
+    //     // $this->emDebug("Redcap data for record $record: ", $qa);
+
+
+
+    //     // $redcap_data = REDCap::getData('array', [$record], [$slot_id_field], $event_id);
+    //     // // $this->emDebug("Redcap data for record $record: ", $redcap_data);
+    //     // if (empty($redcap_data) || empty($redcap_data[$record]) || empty($redcap_data[$record][$event_id]) || empty($redcap_data[$record][$event_id][$slot_id_field])) {
+    //     //     $this->emDebug("No slot_id found for record $record in event $event_id in field $slot_id_field", $redcap_data);
+    //     //     throw new TimezoneException("No slot_id found for record $record in event $event_id in field $slot_id_field");
+    //     // }
+    //     // $slot_id = $redcap_data[$record][$event_id][$slot_id_field] ?? null;
+
+
+
+
+
+    //     if (empty($slot_id)) {
+    //         $this->emDebug("Empty slot_id found for record $record in field $slot_id_field");
+    //         throw new TimezoneException("Empty slot_id found for record $record in field $slot_id_field");
+    //     }
+
+    //     // Build cancel URL
+    //     // Example: https://redcap.local/redcap_v15.3.3/ExternalModules/?prefix=timezone_scheduler&page=cancel&key=abcdef&config=default&pid=38&record=1&event_id=88&instance=1
+    //     $params = [
+    //         'prefix' => $this->PREFIX,
+    //         'page' => 'cancel',
+    //         'key' => $this->getSystemSetting('cancel-key'),
+    //         'config' => $config_key,
+    //         'pid' => $this->getProjectId(),
+    //         'record' => $record,
+    //         'event_id' => $event_id,
+    //     ];
+    // }
 
 
     // Given an array of slot records, build the appointment options
@@ -242,21 +328,32 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $this->emDebug("getSlotFilterValue called with config_key: $config_key, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
         $config = $this->get_tz_config($config_key);
         $slot_filter_field = $config['slot-filter-field'] ?? null;
-        $slot_filter_value = null;
 
+
+        $slot_filter_value = '';
         if (!empty($slot_filter_field)) {
             // Get the slot_filter value from the current record
-            $redcap_data = REDCap::getData('json', [$record], [$slot_filter_field], $event_id, $repeat_instance);
-            $q = json_decode($redcap_data, true);
-            $this->emDebug("Redcap data in getSlotFilterValue for record $record: ", $q);
-            $slot_filter_value = $q[0][$slot_filter_field] ?? null;
+            // Get the slot_id from the current record
+            $data = $this->getRecord($config_key, $record, $event_id, $repeat_instance);
+            $slot_filter_value = $data[$slot_filter_field] ?? '';
+            // $redcap_data = REDCap::getData('json', [$record], [$slot_filter_field], $event_id, $repeat_instance);
+            // $q = json_decode($redcap_data, true);
+            // $this->emDebug("Redcap data in getSlotFilterValue for record $record: ", $q);
+            // $slot_filter_value = $q[0][$slot_filter_field] ?? null;
         }
         return $slot_filter_value;
     }
 
 
-    // Get all available slots as defined by the config_key
-    public function getSlots($config_key, $filter_available = true, $slot_filter_value = null) {
+    /**
+     * get slots from the slot project, filtered as needed
+     * @param string $config_key The configuration key to use
+     * @param bool $filter_available Whether to filter out already reserved slots (default true)
+     * @param string $slot_filter_value An optional slot filter value to filter slots by
+     * @return array An associative array of slots or false if an error occurred
+     * @throws TimezoneException if the configuration is invalid
+     */
+    public function getSlots($config_key, $filter_available = true, $slot_filter_value = '') {
         $this->emDebug("getSlots for $config_key");
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
@@ -264,10 +361,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
             return false;
         }
-
-
-
-
 
         // Load data from slot database
         $redcap_data = REDCap::getData($slot_project_id, 'array');
@@ -311,15 +404,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
      * Currently does not throw any exceptions
      */
     public function getSlot($config_key, $slot_id) {
-        $this->emDebug("getSlot called with config_key: $config_key, slot_id: $slot_id");
+        // $this->emDebug("getSlot called with config_key: $config_key, slot_id: $slot_id");
         $config = $this->get_tz_config($config_key);
-
-        // Pull config data for only selected record:
-        // switching to json format so we can easily re-save and don't need the event_id...
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (empty($slot_project_id)) {
             $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
-            return null;
+            throw new TimezoneException("Invalid configuration - missing slot project id for config_key: $config_key");
         }
 
         $redcap_query = REDCap::getData($slot_project_id, 'json', [$slot_id]);
@@ -327,7 +417,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // $this->emDebug("redcap_data for slot_id $slot_id: ", $redcap_data);
         if (empty($redcap_data)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id");
-            return null;
+            throw new TimezoneException("Unable to locate the requested data for slot $slot_id.");
+        }
+
+        if (!is_array($redcap_data) || count($redcap_data) > 1) {
+            $this->emError("No or Multiple records returned for slot_id $slot_id in slot project $slot_project_id", $redcap_data);
+            throw new TimezoneException("No or Multiple records returned for slot_id $slot_id - see server logs for details.");
         }
 
         // Just take the current (only) record returned
@@ -336,14 +431,21 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Save a slot via json where slot_data contains record_id and all data -- return true/false depending on success
+    /**
+     * Save a slot via json where slot_data contains record_id and all data -- return true/false depending on success
+     * @param string $config_key The configuration key to use
+     * @param array $slot_data An associative array of slot data including the record_id (slot id)
+     * @return bool True if the save was successful, false otherwise
+     * @throws TimezoneException if the configuration is invalid
+     */
     public function saveSlot($config_key, $slot_data) {
-        $this->emDebug("saveSlot called with config_key: $config_key, slot: ", $slot_data);
+        // $this->emDebug("saveSlot called with config_key: $config_key, slot: ", $slot_data);
+
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (!$slot_project_id) {
             $this->emError("Invalid configuration - missing slot project id for config_key: $config_key", $config);
-            return false;
+            throw new TimezoneException("Invalid configuration - missing slot project id for config_key: $config_key");
         }
 
         // Save data to slot database
@@ -354,17 +456,30 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             'overwriteBehavior' => 'overwrite'
         );
         $result = REDCap::saveData($params);
-        if(!empty($result['errors'])) {
-            $this->emError("Error saving slot data for config_key: $config_key, slot:", $slot_data, $result['errors']);
-            return false;
+        if(!isset($result['errors']) || !empty($result['errors'])) {
+            $this->emError("Error saving slot data for config_key: $config_key, slot:", $slot_data, $result);
+            throw new TimezoneException("Error saving slot db data for config_key: $config_key.  Check server logs for details.");
         }
-        $this->emDebug("REDCap saveData result: ", $result);
+        // $this->emDebug("REDCap saveData result: ", $result);
         return true;
     }
 
 
+    /**
+     * Cancel an appointment by clearing the slot and the current record's appointment fields
+     * and returning an array of cleared fields for the client to update
+     * @param int $slot_id The slot id (record id in slot project)
+     * @param string $config_key The configuration key to use
+     * @param int $record The record id
+     * @param int $event_id The event id
+     * @param int $repeat_instance The repeat instance
+     * @param bool $allow_cancel_past_appointments Whether to allow canceling past appointments (default false)
+     * @return array An associative array of cleared fields for the client to update
+     * @throws TimezoneException if any errors occur
+     */
     public function cancelAppointment($slot_id, $config_key, $record, $event_id, $repeat_instance, $allow_cancel_past_appointments=false) {
         $this->emDebug("cancelAppointment called with config_key: $config_key, slot_id: $slot_id, record: $record, event_id: $event_id, repeat_instance: $repeat_instance");
+
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (!$slot_project_id) {
@@ -408,30 +523,50 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $this->emDebug("Cancelled slot_id $slot_id successfully");
 
         // Now lets clear the current record
-        $data = [];
+        // Get the slot_id from the current record
+        $data = $this->getRecord($config_key, $record, $event_id, $repeat_instance);
         $keys = ['appt-field', 'appt-datetime-field', 'appt-description-field', 'appt-participant-text-date-field', 'appt-cancel-url-field', 'slot-record-url-field'];
+        $client_data = [];
         foreach ($keys as $key) {
             if (!empty($config[$key])) {
                 $data[$config[$key]] = null;
+                $client_data[$config[$key]] = null;
             }
         }
         // Save Record
         $params = [
-            'data' => [$record => [ $event_id => $data ]],
+            'dataFormat' => 'json',
+            'data' => json_encode([$data]),
             'overwriteBehavior' => 'overwrite'
         ];
         $q = REDCap::saveData($params);
-        if (!empty($q['errors'])) {
-            $this->emError("Error clearing appointment data to record $record for config_key: $config_key, slot:", $data, $q['errors']);
+        if (!isset($q['errors']) || !empty($q['errors'])) {
+            $this->emError("Error clearing appointment data to record $record for config_key: $config_key, slot:", $data, $q);
             throw new TimezoneException("Failed to clear appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.");
         }
-        return $data;
+        return $client_data;
     }
 
+
+    /**
+     * Reserve a slot by updating the slot record with the reservation details
+     * and updating the current record with the slot id
+     * @param int $slot_id The slot id (record id in slot project)
+     * @param string $config_key The configuration key to use
+     * @param string $timezone The participant's timezone
+     * @param int $project_id The current project id
+     * @param int $record The record id
+     * @param string $instrument The current instrument name
+     * @param int $event_id The event id
+     * @param int $repeat_instance The repeat instance
+     * @return void
+     * @throws TimezoneException if any errors occur
+     */
     public function reserveSlot($slot_id, $config_key, $timezone, $project_id, $record, $instrument, $event_id, $repeat_instance) {
         $config = $this->get_tz_config($config_key);
         $slot_project_id = $config['slot-project-id'] ?? null;
         if (empty($slot_project_id) || empty($slot_id)) {
+            $this->emError("Invalid configuration in Timezone Scheduler module for config: $config_key with slot id: $slot_id");
             throw new TimezoneException("Invalid configuration in Timezone Scheduler module for config: $config_key with slot id: $slot_id");
         }
 
@@ -442,19 +577,20 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             throw new TimezoneException("Unable to obtain a lock for the requested slot - please try again.");
         }
 
+        // Record lock name as object property so we can release it in any exception handler cases...
+        $this->lock_name = $lock_name;
+
         // First get the slot record
         $slot = $this->getSlot($config_key, $slot_id);
         // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
         if (empty($slot)) {
             $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to reservation");
-            $this->releaseLock($lock_name);
             throw new TimezoneException("Unable to locate the requested slot - please try again.");
         }
 
         $result = [];
         if (!empty($slot['reserved_ts'])) {
             $this->emDebug("Slot $slot_id is already reserved");
-            $this->releaseLock($lock_name);
             throw new TimezoneException("The requested slot is no longer available.  Please try again.");
         }
         $this->emDebug("Slot $slot_id is available, proceeding with reservation");
@@ -465,7 +601,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         if (empty($appointment)) {
             $this->emError("Unable to locate appointment data for slot_id $slot_id in timezone $timezone");
-            $this->releaseLock($lock_name);
             throw new TimezoneException("Unable to locate appointment data for the requested slot - please try again.");
         }
 
@@ -486,12 +621,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         if (! $this->saveSlot($config_key, $slot)) {
             $this->emError("Error reserving slot data for config_key: $config_key, slot:", $slot);
-            $this->releaseLock($lock_name);
             throw new TimezoneException("Failed to reserve the requested slot - please try again.");
         }
 
         // Lets also update the current record so that the slot_id is saved here as well
         $data = [];
+        $data[$this->getRecordIdField()] = $record;
         $data[$config['appt-field']] = $slot_id;
 
         // Check for the datetime field and convert the appointment time to the proper format
@@ -522,10 +657,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $data[$adfield] = $server_date;
         }
 
-        // TODO: Consider removing this option as it just adds complication with little benefit
+        // Check for participant text date field
         if ($config['appt-participant-text-date-field']) {
             $data[$config['appt-participant-text-date-field']] = $appointment['participant_text_date'] ?? 'Unable to parse text date';
         }
+
+        // Check for description field
         if ($config['appt-description-field']) {
             $data[$config['appt-description-field']] = $appointment['text'] ?? 'Unable to parse appointment';
         }
@@ -533,13 +670,11 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Build a cancel URL if configured
         if ($config['appt-cancel-url-field']) {
             // Build cancel URL: The key should be specific to the slot_id, record, event, and instance, AND reservation ts so it is unique and not guessable
-
             $key_raw = $config_key . "|" . $slot_id . "|" . $record . "|" . $event_id . "|" . $repeat_instance . "|" . $slot['reserved_ts'];
             $key = encrypt($key_raw);
             $cancel_url = $this->getUrl('pages/cancel.php', true) . "&" . http_build_query(["key" => $key]);
             $data[$config['appt-cancel-url-field']] = $cancel_url;
         }
-
 
         // TODO: Consider removing this url as well and just add a plugin hook to show the slot details
         if ($config['slot-record-url-field']) {
@@ -549,11 +684,31 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 '&id=' . $slot_id . '&page=slots';
         }
 
-        // Save the record
-        $q = REDCap::saveData('array', [$record => [ $event_id => $data ]]);
-        if (!empty($q['errors'])) {
-            $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q['errors']);
-            $this->releaseLock($lock_name);
+        // Check if we need to add repeating form fields
+        $slot_id_field = $config['appt-field'] ?? null;
+        $slot_id_field_form = $this->getFormForField($slot_id_field);
+        $is_repeating = in_array($slot_id_field_form, $this->getRepeatingForms($event_id));
+        if ($is_repeating) {
+            $data['redcap_repeat_instrument'] = $slot_id_field_form;
+            $data['redcap_repeat_instance'] = $repeat_instance;
+        }
+
+        // Check for redcap_event_name if longitudinal
+        if (REDCap::isLongitudinal()) {
+            $event_name = REDCap::getEventNames(true, true, $event_id) ?? null;
+            if ($event_name) {
+                $data['redcap_event_name'] = $event_name;
+            }
+        }
+
+        // Save the record in json format
+        $q = REDCap::saveData('json', json_encode([$data]));
+        // $this->emDebug("REDCap saveData result: ", $q);
+
+        // Check for the array 'errors' of a proper response
+        // Sometimes REDCap seems to throw a string error instead of an array with errors, such as "The data is not in the specified format."
+        if (!isset($q['errors']) || !empty($q['errors'])) {
+            $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q);
             throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.");
         }
 
@@ -655,11 +810,31 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     //     $this->emDebug("saveAppointment called with payload: ", $payload);
     //     // Here you would typically make an AJAX call to save the appointment
     // }
+
+    /**
+     * Handle AJAX requests from the front end
+     * @param string $action The action to perform
+     * @param array $payload The payload data from the AJAX request
+     * @param int $project_id The current project id
+     * @param int $record The current record id
+     * @param string $instrument The current instrument name
+     * @param int $event_id The current event id
+     * @param int $repeat_instance The current repeat instance
+     * @param string $survey_hash The current survey hash
+     * @param int $response_id The current response id
+     * @param string $survey_queue_hash The current survey queue hash
+     * @param string $page The current page name
+     * @param string $page_full The full current page name
+     * @param int $user_id The current user id
+     * @param int $group_id The current group id
+     * @return array An associative array with 'success' (bool) and either 'data' (mixed) or 'message' (string)
+     * @throws Exception if action is not defined
+     */
     public function redcap_module_ajax($action, $payload, $project_id, $record, $instrument, $event_id, $repeat_instance,
         $survey_hash, $response_id, $survey_queue_hash, $page, $page_full, $user_id, $group_id)
     {
         // Return success and then data if true or message if false
-        $this->emDebug("$action called with payload: ", $payload);
+        $this->emDebug("$action called with payload: " . json_encode($payload));
 
         try {
             switch($action) {
@@ -756,22 +931,24 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         $this->emDebug("No appointment slot_id found for record $record with $config_key");
                         throw new TimezoneException("No appointment id found for record $record with config $config_key");
                     }
-
-                    $this->emDebug("Found existing slot_id: $slot_id for record $record");
+                    $this->emDebug("Found existing slot_id $slot_id for record $record with $config_key");
                     $timezone = $payload['timezone'] ?? date_default_timezone_get();
                     $result = [];
                     // Now get the slot record from the slot db
                     $slot = $this->getSlot($config_key, $slot_id);
                     if (empty($slot)) {
                         $this->emError("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
-                        throw new TimezoneException("Record $record has appointment slot_id saved ($slot_id), but unable to locate record slot database: $config_key");
+                        throw new TimezoneException("Record $record has appointment slot_id saved ($slot_id), but unable to look up reservation in slot database: $config_key");
                     }
                     // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
 
                     // Sanity check - make sure the slot's reservation details match that of this appointment record...
+                    // TODO: Not sure what to do here...  Delete source data?  Probably need to make a better error message and have user interface for clearing reservation data.
                     if ($slot['source_record_id'] != $record || $slot['source_event_id'] != $event_id || $slot['source_instance_id'] != $repeat_instance) {
-                        $this->emError("Record $record has appointment slot_id saved ($slot_id), but that slot's source data does not match.");
+                        $this->emError("Record $record has appointment slot_id saved ($slot_id), but that slot's source data does not match the entry in the slot database");
                         // For now, I'm going to keep going, but perhaps we should throw a TimezoneException here...
+                        throw new TimezoneException("Record $record, field $config_key has appointment slot_id $slot_id saved, but the corresponding reservation in the slot database has changed.  Please contact the study team.");
+                        return false;
                     }
 
                     $add_to_calendar_config = $this->slotToCalendarConfig($slot);
@@ -869,6 +1046,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             ];
         } catch (Exception $e) {
             $this->emError("Unknown Exception caught in redcap_module_ajax for action $action: " . $e->getMessage(), $payload);
+            if (!empty($this->lock_name)) {
+                $this->emError("Releasing lock for " . $this->lock_name . " due to exception");
+                $this->releaseLock($this->lock_name);
+            }
             $result = [
                 "success" => false,
                 "message" => "An exception occurred -- please check the server logs"
@@ -876,6 +1057,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         }
 
         // Return is left as php object, is converted to json automatically
+        $this->emDebug("redcap_module_ajax returning result: ", $result);
         return $result;
     }
 
@@ -1074,8 +1256,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Function to filter timezone configuration based on instrument and event and not disabled and return
-    // minimal data to client module
+    /**
+     * Filters the timezone configurations based on the given instrument and event ID.
+     * Only enabled configurations that match the instrument and event ID are returned.
+     * @param string $instrument The instrument name to filter by.
+     * @param int $event_id The event ID to filter by.
+     * @return array An associative array where keys are appointment fields and values contain configuration details.
+     */
     public function filter_tz_config($instrument, $event_id) {
         if (empty($this->config)) {
             $this->load_tz_configs();
@@ -1100,7 +1287,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Builds an array of configured instances using field-event as a unique key
+    /**
+     * Loads timezone configurations from project settings if not already loaded.
+     * Each configuration is indexed by a unique key combining the appointment field and event ID.
+     * Invalid or duplicate configurations are logged and skipped.
+     * The loaded configurations are stored in the $this->config property.
+     */
     private function load_tz_configs() {
         if (empty($this->config)) {
             $this->config = [];
@@ -1207,7 +1399,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
 
     public function redcap_save_record( int $project_id, $record, string $instrument, int $event_id, $group_id, $survey_hash, $response_id, $repeat_instance ) {
-       $this->emDebug(__FUNCTION__ . " called for project $project_id");
+    //    $this->emDebug(__FUNCTION__ . " called for project $project_id");
     }
 
 }
