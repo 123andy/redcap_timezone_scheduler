@@ -197,6 +197,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     'slot_id' => $slot_id,
                     'slot_url' => APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION . "/DataEntry/index.php?pid=" . $config['slot-project-id'] . "&id=$slot_id&page=slots",
                     'date' => $slot['date'],
+                    'project_filter' => $slot['project_filter'] ?? '',
+                    'slot_filter' => $slot['slot_filter'] ?? '',
                     'time' => $slot['time'],
                     'is_past' => $is_past,
                     'note' => $note ?? '',

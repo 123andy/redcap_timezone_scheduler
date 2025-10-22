@@ -221,7 +221,19 @@
                             },
                             {
                                 // Status
-                                targets: 4, width: "90px"
+                                targets: 4, width: "90px", render: function(data, type, row) {
+                                    if (type === 'display') {
+                                        var filter = (row.project_filter ? 'Project Filter: ' + row.project_filter + '\n' : '') +
+                                            (row.slot_filter ? 'Slot Filter: ' + row.slot_filter : '');
+                                        if (filter) {
+                                            return data + ' <i title="' + filter + '" class="fas fa-filter text-secondary"></i>';
+                                        } else {
+                                            return data;
+                                        }
+                                    } else {
+                                        return data;
+                                    }
+                                }
                             },  // status
                             {
                                 // Appt Link
@@ -312,8 +324,8 @@
     $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (event) {
         const newTab = event.target;         // newly shown tab
         const prevTab = event.relatedTarget; // previous tab
-        module.debug('New tab shown: ', newTab);
-        module.debug('Previous tab: ', prevTab);
+        // module.debug('New tab shown: ', newTab);
+        // module.debug('Previous tab: ', prevTab);
 
         // Save active tab to localStorage
         localStorage.setItem('tz_schedule_admin_active_tab', newTab.id);
@@ -327,7 +339,7 @@
     $(document).ready(function() {
         var activeTab = localStorage.getItem('tz_schedule_admin_active_tab');
         if (activeTab) {
-            console.log("Restoring active tab to: " + activeTab);
+            module.debug("Restoring active tab to: " + activeTab);
             var tabEl = $('#' + activeTab); // document.querySelector(`a[href="${activeTab}"]`);
             if (tabEl) new bootstrap.Tab(tabEl).show();
         }
