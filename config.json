@@ -30,7 +30,13 @@
         "getSlot",
         "reserveSlot",
         "addToCalendar",
-        "cancelAppointmentFromUrl"
+        "cancelAppointmentFromUrl",
+        "getAppointmentVerificationData",
+        "resetAppointment",
+        "resetSlotAndAppointment",
+        "getSlotsVerificationData",
+        "cancelSlot",
+        "resetSlot"
     ],
 
     "no-auth-ajax-actions": [
@@ -101,16 +107,16 @@
                     "field-type": "text"
                 },
                 {
-                    "key": "appt-button-label",
-                    "name": "<b>Appointment Button Label</b><br/><i>(Optional)</i> Customize the appointment button label<ul><li>if blank it will read: <button class='button btn-xs btn-primaryrc'>Select An Appointment</button></li></ul>",
-                    "required": false,
-                    "type": "text"
-                },
-                {
                     "key": "appt-event-id",
                     "name": "<b>Appointment Field Event</b><br/>Select the event where the Appointment Field above resides.<ul><li><i>If you wish to use the same Appointment Field in a form that is enabled on multiple events, you must create a configuration instance for each event</i></li></ul>",
                     "required": true,
                     "type": "event-list"
+                },
+                {
+                    "key": "appt-button-label",
+                    "name": "<b>Appointment Button Label</b><br/><i>(Optional)</i> Customize the appointment button label<ul><li>if blank it will read: <button class='button btn-xs btn-primaryrc'>Select An Appointment</button></li></ul>",
+                    "required": false,
+                    "type": "text"
                 },
                 {
                     "key": "appt-datetime-field",
