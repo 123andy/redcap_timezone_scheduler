@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:redcap="https://projectredcap.org" xsi:schemaLocation="http://www.cdisc.org/ns/odm/v1.3 schema/odm/ODM1-3-1.xsd" ODMVersion="1.3.1" FileOID="000-00-0000" FileType="Snapshot" Description="Timezone Scheduler Slot Database Template" AsOfDateTime="2025-09-26T15:40:05" CreationDateTime="2025-09-26T15:40:05" SourceSystem="REDCap" SourceSystemVersion="15.3.3">
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:redcap="https://projectredcap.org" xsi:schemaLocation="http://www.cdisc.org/ns/odm/v1.3 schema/odm/ODM1-3-1.xsd" ODMVersion="1.3.1" FileOID="000-00-0000" FileType="Snapshot" Description="Timezone Scheduler Slot Database Template" AsOfDateTime="2025-10-22T09:17:26" CreationDateTime="2025-10-22T09:17:26" SourceSystem="REDCap" SourceSystemVersion="15.3.3">
 <Study OID="Project.TimezoneSchedulerSlotDatabaseT">
 <GlobalVariables>
 	<StudyName>Timezone Scheduler Slot Database Template</StudyName>
@@ -43,11 +43,13 @@
 &lt;h5&gt;&lt;strong&gt;Upcoming Appointments: [aggregate-count:slot_id:R-8527EMX8DF]&lt;/strong&gt;&lt;/h5&gt;" dash_order="1" user_access="ALL" is_public="0" ID="1b6453892473a467d07372d45eb05abc2031647a"/>
 	</redcap:ProjectDashboardsGroup>
 </GlobalVariables>
-<MetaDataVersion OID="Metadata.TimezoneSchedulerSlotDatabaseT_2025-09-26_1540" Name="Timezone Scheduler Slot Database Template" redcap:RecordIdField="slot_id">
+<MetaDataVersion OID="Metadata.TimezoneSchedulerSlotDatabaseT_2025-10-22_0917" Name="Timezone Scheduler Slot Database Template" redcap:RecordIdField="slot_id">
 	<FormDef OID="Form.slots" Name="Slots" Repeating="No" redcap:FormName="slots">
 		<ItemGroupRef ItemGroupOID="slots.slot_id" Mandatory="No"/>
 		<ItemGroupRef ItemGroupOID="slots.title" Mandatory="No"/>
 		<ItemGroupRef ItemGroupOID="slots.date" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.custom_field_1" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="slots.delete_warning" Mandatory="No"/>
 		<ItemGroupRef ItemGroupOID="slots.reserved_ts" Mandatory="No"/>
 		<ItemGroupRef ItemGroupOID="slots.source_project_id" Mandatory="No"/>
 		<ItemGroupRef ItemGroupOID="slots.slots_complete" Mandatory="No"/>
@@ -65,7 +67,12 @@ It is recommended you import a csv with new slots.  Do not REUSE slot_id numbers
 		<ItemRef ItemOID="time" Mandatory="Yes" redcap:Variable="time"/>
 		<ItemRef ItemOID="project_filter" Mandatory="No" redcap:Variable="project_filter"/>
 		<ItemRef ItemOID="slot_filter" Mandatory="No" redcap:Variable="slot_filter"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.custom_field_1" Name="USER EDITABLE FIELDS
+&lt;div style=&#039;font-weight:normal&#039;&gt;As the slot database admin, you can add additional fields in this section.  For example, you could keep track of who took the meeting, what the outcome was, etc...  Just do not modify the field names in other sections.&lt;/div&gt;" Repeating="No">
 		<ItemRef ItemOID="custom_field_1" Mandatory="No" redcap:Variable="custom_field_1"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="slots.delete_warning" Name="Slots" Repeating="No">
 		<ItemRef ItemOID="delete_warning" Mandatory="No" redcap:Variable="delete_warning"/>
 	</ItemGroupDef>
 	<ItemGroupDef OID="slots.reserved_ts" Name="RESERVATION DETAILS
@@ -75,6 +82,7 @@ The following information is automatically filled in from the linked appointment
 	</ItemGroupDef>
 	<ItemGroupDef OID="slots.source_project_id" Name="Slots" Repeating="No">
 		<ItemRef ItemOID="source_project_id" Mandatory="No" redcap:Variable="source_project_id"/>
+		<ItemRef ItemOID="source_project_title" Mandatory="No" redcap:Variable="source_project_title"/>
 		<ItemRef ItemOID="source_record_id" Mandatory="No" redcap:Variable="source_record_id"/>
 		<ItemRef ItemOID="source_field" Mandatory="No" redcap:Variable="source_field"/>
 		<ItemRef ItemOID="source_event_id" Mandatory="No" redcap:Variable="source_event_id"/>
@@ -100,18 +108,19 @@ It is recommended you import a csv with new slots.  Do not REUSE slot_id numbers
 	<ItemDef OID="time" Name="time" DataType="partialTime" Length="999" redcap:Variable="time" redcap:FieldType="text" redcap:TextValidationType="time" redcap:FieldNote="This uses the server&#039;s timezone" redcap:RequiredField="y">
 		<Question><TranslatedText>Time</TranslatedText></Question>
 	</ItemDef>
-	<ItemDef OID="project_filter" Name="project_filter" DataType="integer" Length="999" redcap:Variable="project_filter" redcap:FieldType="text" redcap:TextValidationType="int" redcap:FieldNote="if set, only the specified project ID will be able to reserve these slots.   If blank, then any project can use the slot.">
-		<Question><TranslatedText>Project FilterIf set, only projects from the set project id will be able to use this slot
-</TranslatedText><redcap:FormattedTranslatedText>Project Filter&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only projects from the set project id will be able to use this slot&lt;/div&gt;
+	<ItemDef OID="project_filter" Name="project_filter" DataType="integer" Length="999" redcap:Variable="project_filter" redcap:FieldType="text" redcap:TextValidationType="int" redcap:FieldNote="Enter the appointment project id (e.g. 1234)">
+		<Question><TranslatedText>Project FilterIf set, only the set project_id will be able to use this slot.  Leave blank to allow any project to utilize this slot
+</TranslatedText><redcap:FormattedTranslatedText>Project Filter&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only the set project_id will be able to use this slot.  Leave blank to allow any project to utilize this slot&lt;/div&gt;
 </redcap:FormattedTranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="slot_filter" Name="slot_filter" DataType="text" Length="999" redcap:Variable="slot_filter" redcap:FieldType="text" redcap:FieldNote="If set, only slots with a value that matches the value of a specified &lt;code&gt;slot-filter-field&lt;/code&gt; in the appointment project will be returned">
-		<Question><TranslatedText>Slot Filter
-If set, only slots with a value that matches the value of a specified slot-filter-field in the appointment project will be returned</TranslatedText><redcap:FormattedTranslatedText>Slot Filter
-&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only slots with a value that matches the value of a specified &lt;code&gt;slot-filter-field&lt;/code&gt; in the appointment project will be returned&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+		<Question><TranslatedText>Appt Slot Filter
+If set, only a record that presents this value in the slot-filter-field setting will be able to use this slot.  See documentation for examples.</TranslatedText><redcap:FormattedTranslatedText>Appt Slot Filter
+&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only a record that presents this value in the &lt;code&gt;slot-filter-field&lt;/code&gt; setting will be able to use this slot.  See documentation for examples.&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
 	</ItemDef>
-	<ItemDef OID="custom_field_1" Name="custom_field_1" DataType="text" Length="999" redcap:Variable="custom_field_1" redcap:FieldType="text" redcap:FieldNote="you can add other fields to this project if you like..." redcap:FieldAnnotation="Add whatever custom fields you feel you need -- they will be ignored by the scheduler tool.">
-		<Question><TranslatedText>Custom Fields</TranslatedText></Question>
+	<ItemDef OID="custom_field_1" Name="custom_field_1" DataType="text" Length="999" redcap:Variable="custom_field_1" redcap:FieldType="text" redcap:FieldNote="you can add other fields to this project if you like..." redcap:SectionHeader="USER EDITABLE FIELDS
+&lt;div style=&#039;font-weight:normal&#039;&gt;As the slot database admin, you can add additional fields in this section.  For example, you could keep track of who took the meeting, what the outcome was, etc...  Just do not modify the field names in other sections.&lt;/div&gt;" redcap:FieldAnnotation="Add whatever custom fields you feel you need -- they will be ignored by the scheduler tool.">
+		<Question><TranslatedText>Custom Field 1</TranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="delete_warning" Name="delete_warning" DataType="text" Length="999" redcap:Variable="delete_warning" redcap:FieldType="descriptive" redcap:BranchingLogic="[source_record_url] &lt;&gt; &#039;&#039;">
 		<Question><TranslatedText>Because this slot is reserved, you should not delete this slot before clearing the appointment.  
@@ -124,13 +133,16 @@ To clear a reserved slot, first visit the appointment record and cancel the appo
 
 &lt;a href=&#039;[source_record_url]&#039; target=&#039;_blank&#039;&gt;&lt;span class=&#039;p-2 button btn-primaryrc btn-xs&#039;&gt;Goto Source Appointment Record&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
 	</ItemDef>
-	<ItemDef OID="reserved_ts" Name="reserved_ts" DataType="datetime" Length="999" redcap:Variable="reserved_ts" redcap:FieldType="text" redcap:TextValidationType="datetime_seconds_ymd" redcap:FieldNote="server timezone" redcap:SectionHeader="RESERVATION DETAILS
+	<ItemDef OID="reserved_ts" Name="reserved_ts" DataType="datetime" Length="999" redcap:Variable="reserved_ts" redcap:FieldType="text" redcap:TextValidationType="datetime_seconds_ymd" redcap:FieldNote="server timezone - determines if slot is available" redcap:SectionHeader="RESERVATION DETAILS
 
 The following information is automatically filled in from the linked appointment project">
 		<Question><TranslatedText>Reserved Timestamp</TranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="source_project_id" Name="source_project_id" DataType="integer" Length="999" redcap:Variable="source_project_id" redcap:FieldType="text" redcap:TextValidationType="int" redcap:FieldNote="project that claimed slot">
 		<Question><TranslatedText>Source Project ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="source_project_title" Name="source_project_title" DataType="text" Length="999" redcap:Variable="source_project_title" redcap:FieldType="text" redcap:FieldNote="name of the project that claimed slot">
+		<Question><TranslatedText>Source Project Title</TranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="source_record_id" Name="source_record_id" DataType="text" Length="999" redcap:Variable="source_record_id" redcap:FieldType="text" redcap:FieldNote="record that claimed slot">
 		<Question><TranslatedText>Source Record ID</TranslatedText></Question>
