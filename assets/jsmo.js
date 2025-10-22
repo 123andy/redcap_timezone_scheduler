@@ -5,16 +5,16 @@
 
     const cookie_name = 'tz_scheduler_client_timezone';
 
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/add-to-calendar-button';
-    script.setAttribute('async', true);
-    script.setAttribute('defer', true);
-    script.onload = function() {
-        // The script is loaded, safe to call atcb_action or initialize button
-        module.debug("add-to-calendar-button library loaded");
-        module.init_atcb();
-    };
-    document.head.appendChild(script);
+    // var script = document.createElement('script');
+    // script.src = 'https://cdn.jsdelivr.net/npm/add-to-calendar-button';
+    // script.setAttribute('async', true);
+    // script.setAttribute('defer', true);
+    // script.onload = function() {
+    //     // The script is loaded, safe to call atcb_action or initialize button
+    //     module.debug("add-to-calendar-button library loaded");
+    //     module.init_atcb();
+    // };
+    // document.head.appendChild(script);
 
     // Extend the official JSMO with new methods for this EM
     Object.assign(module, {
@@ -49,11 +49,71 @@
 
         },
 
+
+        // Add to Calendar Button (currently not using it)
+        addToCalendar: function(field) {
+            // $input = module.data.config[field]['$input'];
+            // module.debug('Field:', field, '$input:', $input);
+            // const slot_id = $input.val();
+            const config_key = module.data.config[field]['config_key'];
+            payload = {
+                'config_key': config_key,
+                // 'timezone': module.getTimezone()
+            }
+            module.ajax('addToCalendar', payload).then(function(response) {
+                module.debug('addToCalendar response:', response);
+                if (!response.success || !response.data || !response.data.config) {
+                    module.debug("Failed to obtain addToCalendar config:", response);
+                    module.notify("Error", "Failed to obtain calendar information:\n\n" + response.message);
+                    return;
+                }
+
+                $button = $('button[data-action="add-to-calendar"]', module.data.config[field]['$container']);
+                if ($button.length === 0) {
+                    module.debug("No add-to-calendar button found for field:", field);
+                    return;
+                }
+
+                const config = response.data.config;
+                const button = $button[0];
+                module.debug("addToCalendar Config:", config, button);
+
+                if (button) {
+                    button.addEventListener('click', () => atcb_action(config, button));
+                }
+
+                button.trigger('click');
+
+
+            }).catch(function (err) {
+                console.error('Error fetching appointment data:', err);
+            });
+
+                // slot_id = $input.val();
+                // slot_text = $input.data('slot_text');
+                // slot_timezone = $input.data('slot_timezone');
+                // module.debug('Add to Calendar Field:', field, slot_id, slot_text, slot_timezone);
+
+                // const config = {
+                //     name: "[Reminder] Test the Add to Calendar Button",
+                //     description: "Check out the maybe easiest way to include Add to Calendar Buttons to your web projects:[br]→ [url]https://add-to-calendar-button.com/|Click here![/url]",
+                //     startDate: "2025-09-23",
+                //     startTime: "10:15",
+                //     endTime: "23:30",
+                //     options: ["Google", "iCal"],
+                //     timeZone: "America/Los_Angeles"
+                // };
+                // atcb_action(config, this);
+
+        },
+
+
         // Debug wrapper for easy toggle
         debug: function(...args) {
             if (module.debugger) {
-                const caller = this.debug.caller.name ? this.debug.caller.name : 'unknown';
-                console.log("[TimezoneScheduler => " + caller + "]\n", ...args);
+                const caller = this.debug.caller.name ? this.debug.caller.name : null;
+                args.unshift(caller ? "[TimezoneScheduler => " + caller + "]" : "[TimezoneScheduler]");
+                console.log(...args);
             }
         },
 
@@ -228,64 +288,6 @@
         },
 
 
-        // Add to Calendar Button (currently not using it)
-        addToCalendar: function(field) {
-            // $input = module.data.config[field]['$input'];
-            // module.debug('Field:', field, '$input:', $input);
-            // const slot_id = $input.val();
-            const config_key = module.data.config[field]['config_key'];
-            payload = {
-                'config_key': config_key,
-                // 'timezone': module.getTimezone()
-            }
-            module.ajax('addToCalendar', payload).then(function(response) {
-                module.debug('addToCalendar response:', response);
-                if (!response.success || !response.data || !response.data.config) {
-                    module.debug("Failed to obtain addToCalendar config:", response);
-                    module.notify("Error", "Failed to obtain calendar information:\n\n" + response.message);
-                    return;
-                }
-
-                $button = $('button[data-action="add-to-calendar"]', module.data.config[field]['$container']);
-                if ($button.length === 0) {
-                    module.debug("No add-to-calendar button found for field:", field);
-                    return;
-                }
-
-                const config = response.data.config;
-                const button = $button[0];
-                module.debug("addToCalendar Config:", config, button);
-
-                if (button) {
-                    button.addEventListener('click', () => atcb_action(config, button));
-                }
-
-                button.trigger('click');
-
-
-            }).catch(function (err) {
-                console.error('Error fetching appointment data:', err);
-            });
-
-                // slot_id = $input.val();
-                // slot_text = $input.data('slot_text');
-                // slot_timezone = $input.data('slot_timezone');
-                // module.debug('Add to Calendar Field:', field, slot_id, slot_text, slot_timezone);
-
-                // const config = {
-                //     name: "[Reminder] Test the Add to Calendar Button",
-                //     description: "Check out the maybe easiest way to include Add to Calendar Buttons to your web projects:[br]→ [url]https://add-to-calendar-button.com/|Click here![/url]",
-                //     startDate: "2025-09-23",
-                //     startTime: "10:15",
-                //     endTime: "23:30",
-                //     options: ["Google", "iCal"],
-                //     timeZone: "America/Los_Angeles"
-                // };
-                // atcb_action(config, this);
-
-        },
-
-
         // Used on the cancel.php page to handle the cancel appointment process
         cancelPageRequest: function() {
             module.debug("Cancel Page Request called");
@@ -342,7 +344,6 @@
         // Cancel Appointment
         cancelAppointment: function(field) {
             module.debug('Cancel Appointment called for field:', field);
-            // Logic to cancel the appointment goes here
 
             $input = module.data.config[field]['$input'];
             module.debug('Field:', field, '$input:', $input);
@@ -364,6 +365,7 @@
                 module.applyDataToForm(response.data);
 
                 // Clear out the data attributes for the select so it refreshes properly
+                // TODO: Is this still needed?
                 $input.data('slot_text', null);
                 $input.data('slot_timezone', null);
 
@@ -663,6 +665,139 @@
 
             // Disabling focus on next field for now as it is causing problems
             // module.focusOnNextField(field);
+
+        },
+
+
+        showAppointmentSummary: function() {
+            module.debug("Show Appointment Summary called");
+            module.getAppointmentsSummary();
+
+            // Add handler for appointment table buttons
+            $('#Appointments').on('click', 'button', function() {
+                module.debug('Appointment Table Button Click', $(this));
+                var url = $(this).data('url');
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            });
+        },
+
+        getAppointmentsSummary: function() {
+            module.debug("Getting appointments summary");
+            module.ajax('getAppointmentVerificationData', []).then(function (response) {
+                module.debug('getAppointmentVerificationData response: ', response);
+
+                if (response.success) {
+                    /* Example response:
+                    {
+                        "config_key": "appt_slot_1-88",
+                        "appt_record": "3",
+                        "appt_event_name": "event_1_arm_1",
+                        "appt_instance": 1,
+                        "appt_instrument": "appiontment_form_1",
+                        "appt_url": "https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=3&page=appiontment_form_1&event_id=88&instance=1",
+                        "appt_slot_id": "25",
+                        "slot_db_url": "https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=25&page=slots",
+                        "status": "ERROR",
+                        "errors": "Appointment record 3 does not match Slot DB record 4",
+                        "actions": "Reset Appt and Slot"
+                    }
+                    */
+
+                    // var formattedData = response.data.map(item => [{
+                    //     status: item.status,
+                    //     config_key: item.config_key,
+                    //     record: item.appt_record,
+                    //     instance: item.appt_instance,
+                    //     errors: item.errors || '',
+                    //     actions: item.actions || '',
+                    // }]);
+
+                    // 1. Get the DataTable instance
+                    var table = $('#Appointments').DataTable({
+                        data: response.data,
+                        scrollX: true,
+                        responsive: true,
+                        columns: [
+                            { data: 'status', title: '' },
+                            { data: 'config_key', title: 'Config' },
+                            { data: 'appt_record', title: 'Record' },
+                            { data: 'appt_instance', title: 'Instance' },
+                            { data: 'appt_slot_id', title: 'Slot#' },
+                            { data: 'errors', title: 'Errors' },
+                            { data: 'actions', title: 'Actions' }
+                        ],
+                        // destroy: true,  // Allow re-initialization
+                        columnDefs: [
+                            { targets: 0, width: "30px", render: function(data, type, row) {
+                                if (type === 'display') {
+                                    return data === "OK" ?
+                                        '<span class="text-success">✔️</span>' :
+                                        '<span class="text-danger">❌</span>';
+                                } else {
+                                    return data;
+                                }
+                            }},   // Status
+                            { targets: 1, width: "90px" },  // Config
+                            { targets: 2, width: "30px", render: function(data, type, row) {
+                                if (type === 'display') {
+                                    return '<div class="btn-group" role="group">' +
+                                        '<button title="Open Record" type="button" data-url="' + row.appt_url + '" class="btn btn-xs btn-outline-primary">' + data + '</button>' +
+                                        '</div>';
+                                } else {
+                                    return data;
+                                }
+                            }},   // Record
+                            { targets: 3, width: "30px" },
+                            { targets: 4, width: "30px" , render: function(data, type, row) {
+                                if (type === 'display') {
+                                    return '<div class="btn-group" role="group">' +
+                                        '<button title="Open Slot DB Entry" type="button" data-url="' + row.slot_db_url + '" class="btn btn-xs btn-outline-success">' + data + '</button>' +
+                                        '</div>';
+                                } else {
+                                    return data;
+                                }
+                            }},   // Instance
+                            { targets: 5, width: "180px", render: function(data, type, row) {
+                                if (type === 'display') {
+                                    data = data ? '<ul class="pl-0 mb-0"><li>' + data.replace(/\|/g, '</li><li>') + '</li></ul>' : data;
+                                    return data ? data : '<span class="text-muted">No Errors</span>';
+                                } else {
+                                    return data;
+                                }
+                            }},  // Errors
+                            { targets: 6, width: "120px", render: function(data, type, row) {
+                                if (type === 'display') {
+                                    return '<div class="btn-group" role="group">' +
+                                        '<button type="button" class="btn btn-xs btn-outline-primary">' + data + '</button>' +
+                                        // '<button type="button" class="btn btn-xs btn-outline-danger">Delete</button>' +
+                                        '</div>';
+                                } else {
+                                    return data;
+                                }
+                            }}   // Actions
+                        ]
+                    });
+
+                    // // 2. Clear existing data (optional)
+                    // table.clear();
+
+                    // // 3. Add new data
+                    // table.rows.add(formattedData); // If your data matches the columns
+
+                    // 4. Redraw the table
+                    table.draw();
+                } else {
+                    module.debug("Failed to obtain Appointment Verification Data:", response);
+                    module.notify("Error", "Failed to obtain Appointment Verification Data:\n\n" + response.message);
+                    return;
+                }
+            }).catch(function (err) {
+                // Handle error
+                module.debug("Error getting Appointment Verification Data: ", err);
+                module.notify("Error Fetching Appointment Verification Data", err);
+            });
 
         },
 
