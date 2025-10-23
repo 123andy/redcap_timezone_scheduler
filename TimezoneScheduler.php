@@ -97,12 +97,47 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $q = [];
         $now_dt = new DateTime("now");
         $results = [];
+        $appt_map = [];
+
         foreach($this->config as $config_key => $config) {
-            $this->emDebug("Checking slots for config $config_key: ", $config);
+            // $this->emDebug("Checking slots for config $config_key: ", $config);
+
+            // Get All Appointments for this config
+            $appt_field = $config['appt-field'];
+            $appts = $this->getRecords($config_key);
+            $this->emDebug("Found " . count($appts) . " appointments for config_key $config_key");
+            foreach ($appts as $appt) {
+                $appt_event_name = $appt['redcap_event_name'] ?? null;
+                $appt_instance = $appt['redcap_repeat_instance'] ?? null;
+
+                $appt_record = $appt[REDCap::getRecordIdField()];
+                $appt_event_id = REDCap::getEventIdFromUniqueEvent($appt_event_name);
+                $appt_repeat_instance = $appt_instance ? $appt_instance : 1;
+                $appt_slot_id = $appt[$appt_field];
+
+                if (!isset($appt_map[$appt_slot_id])) {
+                    $appt_map[$appt_slot_id] = [];
+                }
+
+                $appt_map[$appt_slot_id][] = [
+                    'appt_project_id' => $this->getProjectId(),
+                    'appt_field' => $appt_field,
+                    'appt_record' => $appt_record,
+                    'appt_event_id' => $appt_event_id,
+                    'appt_repeat_instance' => $appt_repeat_instance,
+                    'config_key' => $config_key
+                ];
+            }
+        }
+        // $this->emDebug("Appointment Maps for all config_keys:", $appt_map);
+
+        foreach($this->config as $config_key => $config) {
+            // Get All Slots for this config
             $slots = $this->getSlots($config_key, false);
             $this->emDebug("Verifying " . count($slots) . " slots for config_key $config_key");
             $slot_project_id = $config['slot-project-id'];
 
+            // Get all the slots for this config
             foreach ($slots as $slot_id => $slot) {
                 if (isset($results[$slot_id]) && $results[$slot_id]['slot_project_id'] === $slot_project_id) {
                     $results[$slot_id]['config_keys'][] = $config_key;
@@ -167,6 +202,29 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                                     "slot_id" => $slot['slot_id']
                                 ]
                             ];
+                        }
+
+                        // See if it points to an apptointment, if so, verify the appointment also points back to this slot
+                        $source_field = $slot['source_field'] ?? null;
+                        $source_project_id = $slot['source_project_id'] ?? null;
+                        $source_record_id = $slot['source_record_id'] ?? null;
+                        $source_event_id = $slot['source_event_id'] ?? null;
+                        $source_instance_id = $slot['source_instance_id'] ?? null;
+
+                        if (empty($appt_map[$slot_id])) {
+                            $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
+                        } else {
+                            if (count($appt_map[$slot_id]) > 1) {
+                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id] . "</pre>");
+                            } else {
+                                $appt_info = $appt_map[$slot_id][0];
+                                if ($appt_info['appt_record'] != $source_record_id
+                                    || $appt_info['appt_event_id'] != $source_event_id
+                                    || $appt_info['appt_repeat_instance'] != $source_instance_id
+                                ) {
+                                    $errors[] = "Slot $slot_id does not match the appointment record that claims it: project $source_project_id, record $source_record_id, field $source_field - please investigate.";
+                                }
+                            }
                         }
                     } else {
                         // Has record but isn't reserved -- this shouldn't happen
@@ -266,35 +324,33 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
             $slot = $slots[$appt_slot_id] ?? null;
 
-            $actions[] = [
-                "label" => "Reset Appt Only",
-                "action" => "resetAppointment",
-                "params" => [
-                    "config_key" => $config_key,
-                    "record" => $appt_record,
-                    "instance" => $appt_repeat_instance
-                ]
-            ];
 
+            $appt_error = 0;
+            $slot_error = 0;
             if (empty($slot)) {
                 $errors[] = "The appointment references a slot_id ($appt_slot_id) that does not exist in the slot database.";
+                $appt_error = 1;
             } else {
                 $slot_url = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION . "/DataEntry/index.php?pid=" . $slot_project_id . "&id=$appt_slot_id&page=slots";
                 $slot_dt = $slot['date'] . " " . $slot['time'];
                 $data['slot_db_url'] = $slot_url;
                 $data['slot_dt'] = $slot_dt;
                 if (empty($slot['reserved_ts'])) {
-                    $errors[] = "Slot $appt_slot_id is not reserved even though record $appt_record is pointing at it.";
+                    $errors[] = "Record $appt_record is pointing to Slot $appt_slot_id, but slot $appt_slot_id does not point back.";
+                    $appt_error = 1;
                 } else {
                     // Check that slot matches record, event, instance
                     if ($appt_record != $slot['source_record_id']) {
-                        $errors[] = "Slot $appt_slot_id refers to a different record ({$slot['source_record_id']} instead of $appt_record)";
+                        $errors[] = "Appt $appt_record points to Slot $appt_slot_id, but this slot refers to a different appointment record: {$slot['source_record_id']}!";
+                        $slot_error = 1;
                     }
                     if ($appt_event_id != $slot['source_event_id']) {
-                        $errors[] = "Slot $appt_slot_id refers to a different event ({$slot['source_event_id']} instead of $appt_event_id)";
+                        $errors[] = "Appt $appt_record points to Slot $appt_slot_id, but this slot refers to a different event ({$slot['source_event_id']} instead of $appt_event_id)";
+                        $slot_error = 1;
                     }
                     if ($appt_repeat_instance != $slot['source_instance_id']) {
-                        $errors[] = "Slot $appt_slot_id refers to a different instance ({$slot['source_instance_id']} instead of $appt_repeat_instance)";
+                        $errors[] = "Appt $appt_record points to Slot $appt_slot_id, but this slot refers to a different instance ({$slot['source_instance_id']} instead of $appt_repeat_instance)";
+                        $slot_error = 1;
                     }
 
                     // $actions[] = "Reset Appt and Slot";
@@ -319,6 +375,40 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 }
 
             }
+
+
+            if ($appt_error) {
+                $actions[] = [
+                    "label" => "Reset Appt Only",
+                    "action" => "resetAppointment",
+                    "params" => [
+                        "config_key" => $config_key,
+                        "record" => $appt_record,
+                        "instance" => $appt_repeat_instance
+                    ]
+                ];
+            }
+                    // Add action buttons for slot errors
+            if ($slot_error) {
+                $actions[] = [
+                    "label" => "Reset Appt Only",
+                    "action" => "resetAppointment",
+                    "params" => [
+                        "config_key" => $config_key,
+                        "record" => $appt_record,
+                        "instance" => $appt_repeat_instance
+                    ]
+                ];
+                $actions[] = [
+                    "label" => "Reset Slot Only",
+                    "action" => "resetSlot",
+                    "params" => [
+                        "config_key" => $config_key,
+                        "slot_id" => $appt_slot_id
+                    ]
+                ];
+            }
+
             $data['status'] = empty($errors) ? "OK" : "ERROR";
             $data['errors'] = implode('|', $errors);
             $data['actions'] = $actions;
@@ -428,11 +518,11 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 && $entry['redcap_repeat_instance'] == ""
             ) {
                 // Found the correct non-repeating form entry
-                $this->emDebug("Found correct non-repeating entry:", array_filter($entry));
+                // $this->emDebug("Found correct non-repeating entry:", array_filter($entry));
                 $result = $entry;
                 break;
             } else {
-                $this->emDebug("Skipping non-matching entry:", array_filter($entry));
+                // $this->emDebug("Skipping non-matching entry:", array_filter($entry));
             }
         }
 
@@ -653,6 +743,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             }
             $slots[$slot_id] = $data;
         }
+
+        // Sort by date/time
+        uasort($slots, function($a, $b) {
+            $dt_a = new DateTime($a['date'] . ' ' . $a['time']);
+            $dt_b = new DateTime($b['date'] . ' ' . $b['time']);
+            return $dt_a <=> $dt_b;
+        });
+
         return $slots;
     }
 
@@ -1234,9 +1332,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 case "getAppointmentVerificationData":
                     $this->load_tz_configs();
                     $q = [];
-                    foreach($this->config as $k => $config) {
-                        $this->emDebug("Checking config $k: ", $config);
-                        $q = array_merge($q, $this->verifyAppointments($k));
+                    foreach($this->config as $config_key => $config) {
+                        // $this->emDebug("Checking config $k: ", $config);
+                        $q = array_merge($q, $this->verifyAppointments($config_key));
                     }
                     $result = [
                         "success" => true,
