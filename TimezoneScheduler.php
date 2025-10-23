@@ -1187,7 +1187,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Sometimes REDCap seems to throw a string error instead of an array with errors, such as "The data is not in the specified format."
         if (!isset($q['errors']) || !empty($q['errors'])) {
             $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q);
-            throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.");
+            throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.\n\nError details: " . json_encode($q['errors']));
         }
 
         // Release Lock
