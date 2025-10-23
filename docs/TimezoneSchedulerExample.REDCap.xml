@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:redcap="https://projectredcap.org" xsi:schemaLocation="http://www.cdisc.org/ns/odm/v1.3 schema/odm/ODM1-3-1.xsd" ODMVersion="1.3.1" FileOID="000-00-0000" FileType="Snapshot" Description="Timezone Scheduler" AsOfDateTime="2025-10-23T12:43:54" CreationDateTime="2025-10-23T12:43:54" SourceSystem="REDCap" SourceSystemVersion="15.3.3">
+<Study OID="Project.TimezoneScheduler">
+<GlobalVariables>
+	<StudyName>Timezone Scheduler</StudyName>
+	<StudyDescription>This file contains the metadata, events, and data for REDCap project "Timezone Scheduler".</StudyDescription>
+	<ProtocolName>Timezone Scheduler</ProtocolName>
+	<redcap:RecordAutonumberingEnabled>1</redcap:RecordAutonumberingEnabled>
+	<redcap:CustomRecordLabel></redcap:CustomRecordLabel>
+	<redcap:SecondaryUniqueField></redcap:SecondaryUniqueField>
+	<redcap:SecondaryUniqueFieldDisplayValue>1</redcap:SecondaryUniqueFieldDisplayValue>
+	<redcap:SecondaryUniqueFieldDisplayLabel>1</redcap:SecondaryUniqueFieldDisplayLabel>
+	<redcap:SchedulingEnabled>0</redcap:SchedulingEnabled>
+	<redcap:SurveysEnabled>1</redcap:SurveysEnabled>
+	<redcap:SurveyInvitationEmailField></redcap:SurveyInvitationEmailField>
+	<redcap:RandomizationEnabled>0</redcap:RandomizationEnabled>
+	<redcap:DisplayTodayNowButton>1</redcap:DisplayTodayNowButton>
+	<redcap:PreventBranchingEraseValues>0</redcap:PreventBranchingEraseValues>
+	<redcap:RequireChangeReason>0</redcap:RequireChangeReason>
+	<redcap:DataHistoryPopup>1</redcap:DataHistoryPopup>
+	<redcap:OrderRecordsByField></redcap:OrderRecordsByField>
+	<redcap:taskCompleteStatus>2</redcap:taskCompleteStatus>
+	<redcap:DataResolutionWorkflowEnabled>1</redcap:DataResolutionWorkflowEnabled>
+	<redcap:FieldCommentLogOptionEditDelete>1</redcap:FieldCommentLogOptionEditDelete>
+	<redcap:DataResolutionWorkflowHideClosedQueries>1</redcap:DataResolutionWorkflowHideClosedQueries>
+	<redcap:MyCapEnabled>0</redcap:MyCapEnabled>
+	<redcap:Purpose>0</redcap:Purpose>
+	<redcap:PurposeOther></redcap:PurposeOther>
+	<redcap:ProjectNotes></redcap:ProjectNotes>
+	<redcap:SurveyQueueCustomText></redcap:SurveyQueueCustomText>
+	<redcap:SurveyQueueHide>0</redcap:SurveyQueueHide>
+	<redcap:SurveyAuthEnabled>0</redcap:SurveyAuthEnabled>
+	<redcap:SurveyAuthField1></redcap:SurveyAuthField1>
+	<redcap:SurveyAuthEvent1></redcap:SurveyAuthEvent1>
+	<redcap:SurveyAuthField2></redcap:SurveyAuthField2>
+	<redcap:SurveyAuthEvent2></redcap:SurveyAuthEvent2>
+	<redcap:SurveyAuthField3></redcap:SurveyAuthField3>
+	<redcap:SurveyAuthEvent3></redcap:SurveyAuthEvent3>
+	<redcap:SurveyAuthMinFields></redcap:SurveyAuthMinFields>
+	<redcap:SurveyAuthApplyAllSurveys>1</redcap:SurveyAuthApplyAllSurveys>
+	<redcap:SurveyAuthCustomMessage></redcap:SurveyAuthCustomMessage>
+	<redcap:SurveyAuthFailLimit></redcap:SurveyAuthFailLimit>
+	<redcap:SurveyAuthFailWindow></redcap:SurveyAuthFailWindow>
+	<redcap:MissingDataCodes></redcap:MissingDataCodes>
+	<redcap:ProtectedEmailMode>0</redcap:ProtectedEmailMode>
+	<redcap:ProtectedEmailModeCustomText></redcap:ProtectedEmailModeCustomText>
+	<redcap:ProtectedEmailModeTrigger>ALL</redcap:ProtectedEmailModeTrigger>
+	<redcap:ProtectedEmailModeLogo></redcap:ProtectedEmailModeLogo>
+	<redcap:RepeatingInstrumentsAndEvents>
+		<redcap:RepeatingInstruments>
+			<redcap:RepeatingInstrument redcap:UniqueEventName="event_1_arm_1" redcap:RepeatInstrument="example_d_repeating_instances" redcap:CustomLabel=""/>
+		</redcap:RepeatingInstruments>
+	</redcap:RepeatingInstrumentsAndEvents>
+	<redcap:SurveysGroup>
+		<redcap:Surveys form_name="example_a" title="Example A: Timezone Scheduler Complete" instructions="&lt;p&gt;&lt;strong&gt;Please complete the survey below.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Thank you!&lt;/p&gt;" offline_instructions="" acknowledgement="&lt;p&gt;&lt;strong&gt;Thank you for taking the survey.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Have a nice day!&lt;/p&gt;" stop_action_acknowledgement="" stop_action_delete_response="0" question_by_section="1" display_page_number="0" question_auto_numbering="0" survey_enabled="1" save_and_return="0" save_and_return_code_bypass="0" logo="" hide_title="0" view_results="0" min_responses_view_results="10" check_diversity_view_results="0" end_survey_redirect_url="" survey_expiration="" promis_skip_question="0" survey_auth_enabled_single="0" edit_completed_response="0" hide_back_button="0" show_required_field_text="1" confirmation_email_subject="" confirmation_email_content="" confirmation_email_from="" confirmation_email_from_display="" confirmation_email_attach_pdf="0" confirmation_email_attachment="" text_to_speech="0" text_to_speech_language="en" end_survey_redirect_next_survey="0" end_survey_redirect_next_survey_logic="" theme="" text_size="1" font_family="16" theme_text_buttons="" theme_bg_page="" theme_text_title="" theme_bg_title="" theme_text_sectionheader="" theme_bg_sectionheader="" theme_text_question="" theme_bg_question="" enhanced_choices="0" repeat_survey_enabled="0" repeat_survey_btn_text="" repeat_survey_btn_location="BEFORE_SUBMIT" response_limit="" response_limit_include_partials="1" response_limit_custom_text="&lt;p&gt;Thank you for your interest; however, the survey is closed because the maximum number of responses has been reached.&lt;/p&gt;" survey_time_limit_days="" survey_time_limit_hours="" survey_time_limit_minutes="" email_participant_field="" end_of_survey_pdf_download="0" pdf_save_to_field="" pdf_save_to_event_id="" pdf_save_translated="0" pdf_auto_archive="0" pdf_econsent_version="" pdf_econsent_type="" pdf_econsent_firstname_field="" pdf_econsent_firstname_event_id="" pdf_econsent_lastname_field="" pdf_econsent_lastname_event_id="" pdf_econsent_dob_field="" pdf_econsent_dob_event_id="" pdf_econsent_allow_edit="0" pdf_econsent_signature_field1="" pdf_econsent_signature_field2="" pdf_econsent_signature_field3="" pdf_econsent_signature_field4="" pdf_econsent_signature_field5="" survey_width_percent="" survey_show_font_resize="1" survey_btn_text_prev_page="" survey_btn_text_next_page="" survey_btn_text_submit="" survey_btn_hide_submit="0" survey_btn_hide_submit_logic=""/>
+		<redcap:Surveys form_name="example_b_multiple_appts" title="Example B: Multiple Appointments Single Form" instructions="&lt;p&gt;&lt;strong&gt;Please complete the survey below.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Thank you!&lt;/p&gt;" offline_instructions="" acknowledgement="&lt;p&gt;&lt;strong&gt;Thank you for taking the survey.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Have a nice day!&lt;/p&gt;" stop_action_acknowledgement="" stop_action_delete_response="0" question_by_section="0" display_page_number="0" question_auto_numbering="0" survey_enabled="1" save_and_return="0" save_and_return_code_bypass="0" logo="" hide_title="0" view_results="0" min_responses_view_results="10" check_diversity_view_results="0" end_survey_redirect_url="" survey_expiration="" promis_skip_question="0" survey_auth_enabled_single="0" edit_completed_response="0" hide_back_button="0" show_required_field_text="1" confirmation_email_subject="" confirmation_email_content="" confirmation_email_from="" confirmation_email_from_display="" confirmation_email_attach_pdf="0" confirmation_email_attachment="" text_to_speech="0" text_to_speech_language="en" end_survey_redirect_next_survey="0" end_survey_redirect_next_survey_logic="" theme="" text_size="1" font_family="16" theme_text_buttons="" theme_bg_page="" theme_text_title="" theme_bg_title="" theme_text_sectionheader="" theme_bg_sectionheader="" theme_text_question="" theme_bg_question="" enhanced_choices="0" repeat_survey_enabled="0" repeat_survey_btn_text="" repeat_survey_btn_location="BEFORE_SUBMIT" response_limit="" response_limit_include_partials="1" response_limit_custom_text="&lt;p&gt;Thank you for your interest; however, the survey is closed because the maximum number of responses has been reached.&lt;/p&gt;" survey_time_limit_days="" survey_time_limit_hours="" survey_time_limit_minutes="" email_participant_field="" end_of_survey_pdf_download="0" pdf_save_to_field="" pdf_save_to_event_id="" pdf_save_translated="0" pdf_auto_archive="0" pdf_econsent_version="" pdf_econsent_type="" pdf_econsent_firstname_field="" pdf_econsent_firstname_event_id="" pdf_econsent_lastname_field="" pdf_econsent_lastname_event_id="" pdf_econsent_dob_field="" pdf_econsent_dob_event_id="" pdf_econsent_allow_edit="0" pdf_econsent_signature_field1="" pdf_econsent_signature_field2="" pdf_econsent_signature_field3="" pdf_econsent_signature_field4="" pdf_econsent_signature_field5="" survey_width_percent="" survey_show_font_resize="1" survey_btn_text_prev_page="" survey_btn_text_next_page="" survey_btn_text_submit="" survey_btn_hide_submit="0" survey_btn_hide_submit_logic=""/>
+		<redcap:Surveys form_name="example_c_multievent_scheduling" title="Example C: Multi-Event Scheduling" instructions="&lt;p&gt;&lt;strong&gt;Please complete the survey below.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Thank you!&lt;/p&gt;" offline_instructions="" acknowledgement="&lt;p&gt;&lt;strong&gt;Thank you for taking the survey.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Have a nice day!&lt;/p&gt;" stop_action_acknowledgement="" stop_action_delete_response="0" question_by_section="1" display_page_number="0" question_auto_numbering="0" survey_enabled="1" save_and_return="0" save_and_return_code_bypass="0" logo="" hide_title="0" view_results="0" min_responses_view_results="10" check_diversity_view_results="0" end_survey_redirect_url="" survey_expiration="" promis_skip_question="0" survey_auth_enabled_single="0" edit_completed_response="0" hide_back_button="0" show_required_field_text="1" confirmation_email_subject="" confirmation_email_content="" confirmation_email_from="" confirmation_email_from_display="" confirmation_email_attach_pdf="0" confirmation_email_attachment="" text_to_speech="0" text_to_speech_language="en" end_survey_redirect_next_survey="0" end_survey_redirect_next_survey_logic="" theme="" text_size="1" font_family="16" theme_text_buttons="" theme_bg_page="" theme_text_title="" theme_bg_title="" theme_text_sectionheader="" theme_bg_sectionheader="" theme_text_question="" theme_bg_question="" enhanced_choices="0" repeat_survey_enabled="0" repeat_survey_btn_text="" repeat_survey_btn_location="BEFORE_SUBMIT" response_limit="" response_limit_include_partials="1" response_limit_custom_text="&lt;p&gt;Thank you for your interest; however, the survey is closed because the maximum number of responses has been reached.&lt;/p&gt;" survey_time_limit_days="" survey_time_limit_hours="" survey_time_limit_minutes="" email_participant_field="" end_of_survey_pdf_download="0" pdf_save_to_field="" pdf_save_to_event_id="" pdf_save_translated="0" pdf_auto_archive="0" pdf_econsent_version="" pdf_econsent_type="" pdf_econsent_firstname_field="" pdf_econsent_firstname_event_id="" pdf_econsent_lastname_field="" pdf_econsent_lastname_event_id="" pdf_econsent_dob_field="" pdf_econsent_dob_event_id="" pdf_econsent_allow_edit="0" pdf_econsent_signature_field1="" pdf_econsent_signature_field2="" pdf_econsent_signature_field3="" pdf_econsent_signature_field4="" pdf_econsent_signature_field5="" survey_width_percent="" survey_show_font_resize="1" survey_btn_text_prev_page="" survey_btn_text_next_page="" survey_btn_text_submit="" survey_btn_hide_submit="0" survey_btn_hide_submit_logic=""/>
+		<redcap:Surveys form_name="example_d_repeating_instances" title="Example D: Repeating Instances" instructions="&lt;p&gt;&lt;strong&gt;Please complete the survey below.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Thank you!&lt;/p&gt;" offline_instructions="" acknowledgement="&lt;p&gt;&lt;strong&gt;Thank you for taking the survey.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Have a nice day!&lt;/p&gt;" stop_action_acknowledgement="" stop_action_delete_response="0" question_by_section="1" display_page_number="0" question_auto_numbering="0" survey_enabled="1" save_and_return="0" save_and_return_code_bypass="0" logo="" hide_title="0" view_results="0" min_responses_view_results="10" check_diversity_view_results="0" end_survey_redirect_url="" survey_expiration="" promis_skip_question="0" survey_auth_enabled_single="0" edit_completed_response="0" hide_back_button="0" show_required_field_text="1" confirmation_email_subject="" confirmation_email_content="" confirmation_email_from="" confirmation_email_from_display="" confirmation_email_attach_pdf="0" confirmation_email_attachment="" text_to_speech="0" text_to_speech_language="en" end_survey_redirect_next_survey="0" end_survey_redirect_next_survey_logic="" theme="" text_size="1" font_family="16" theme_text_buttons="" theme_bg_page="" theme_text_title="" theme_bg_title="" theme_text_sectionheader="" theme_bg_sectionheader="" theme_text_question="" theme_bg_question="" enhanced_choices="0" repeat_survey_enabled="1" repeat_survey_btn_text="Take this survey again" repeat_survey_btn_location="BEFORE_SUBMIT" response_limit="" response_limit_include_partials="1" response_limit_custom_text="&lt;p&gt;Thank you for your interest; however, the survey is closed because the maximum number of responses has been reached.&lt;/p&gt;" survey_time_limit_days="" survey_time_limit_hours="" survey_time_limit_minutes="" email_participant_field="" end_of_survey_pdf_download="0" pdf_save_to_field="" pdf_save_to_event_id="" pdf_save_translated="0" pdf_auto_archive="0" pdf_econsent_version="" pdf_econsent_type="" pdf_econsent_firstname_field="" pdf_econsent_firstname_event_id="" pdf_econsent_lastname_field="" pdf_econsent_lastname_event_id="" pdf_econsent_dob_field="" pdf_econsent_dob_event_id="" pdf_econsent_allow_edit="0" pdf_econsent_signature_field1="" pdf_econsent_signature_field2="" pdf_econsent_signature_field3="" pdf_econsent_signature_field4="" pdf_econsent_signature_field5="" survey_width_percent="" survey_show_font_resize="1" survey_btn_text_prev_page="" survey_btn_text_next_page="" survey_btn_text_submit="" survey_btn_hide_submit="0" survey_btn_hide_submit_logic=""/>
+	</redcap:SurveysGroup>
+	<redcap:SurveysQueueGroup>
+		<redcap:SurveysQueue active="1" auto_start="0" condition_surveycomplete_survey_id="example_a" condition_surveycomplete_event_id="event_1_arm_1" condition_andor="AND" condition_logic="" event_id="event_1_arm_1" survey_id="example_b_multiple_appts"/>
+		<redcap:SurveysQueue active="1" auto_start="0" condition_surveycomplete_survey_id="example_a" condition_surveycomplete_event_id="event_1_arm_1" condition_andor="AND" condition_logic="" event_id="event_1_arm_1" survey_id="example_c_multievent_scheduling"/>
+		<redcap:SurveysQueue active="1" auto_start="0" condition_surveycomplete_survey_id="example_a" condition_surveycomplete_event_id="event_1_arm_1" condition_andor="AND" condition_logic="" event_id="event_2_arm_1" survey_id="example_c_multievent_scheduling"/>
+		<redcap:SurveysQueue active="1" auto_start="0" condition_surveycomplete_survey_id="example_a" condition_surveycomplete_event_id="event_1_arm_1" condition_andor="AND" condition_logic="" event_id="event_1_arm_1" survey_id="example_d_repeating_instances"/>
+	</redcap:SurveysQueueGroup>
+</GlobalVariables>
+<MetaDataVersion OID="Metadata.TimezoneScheduler_2025-10-23_1243" Name="Timezone Scheduler" redcap:RecordIdField="record_id">
+	<Protocol>
+		<StudyEventRef StudyEventOID="Event.event_1_arm_1" OrderNumber="1" Mandatory="No"/>
+		<StudyEventRef StudyEventOID="Event.event_2_arm_1" OrderNumber="2" Mandatory="No"/>
+	</Protocol>
+	<StudyEventDef OID="Event.event_1_arm_1" Name="Event 1" Type="Common" Repeating="No" redcap:EventName="Event 1" redcap:CustomEventLabel="" redcap:UniqueEventName="event_1_arm_1" redcap:ArmNum="1" redcap:ArmName="Arm 1" redcap:DayOffset="1" redcap:OffsetMin="0" redcap:OffsetMax="0">
+		<FormRef FormOID="Form.example_a" OrderNumber="1" Mandatory="No" redcap:FormName="example_a"/>
+		<FormRef FormOID="Form.example_b_multiple_appts" OrderNumber="2" Mandatory="No" redcap:FormName="example_b_multiple_appts"/>
+		<FormRef FormOID="Form.example_c_multievent_scheduling" OrderNumber="3" Mandatory="No" redcap:FormName="example_c_multievent_scheduling"/>
+		<FormRef FormOID="Form.example_d_repeating_instances" OrderNumber="4" Mandatory="No" redcap:FormName="example_d_repeating_instances"/>
+	</StudyEventDef>
+	<StudyEventDef OID="Event.event_2_arm_1" Name="Event 2" Type="Common" Repeating="No" redcap:EventName="Event 2" redcap:CustomEventLabel="" redcap:UniqueEventName="event_2_arm_1" redcap:ArmNum="1" redcap:ArmName="Arm 1" redcap:DayOffset="2" redcap:OffsetMin="0" redcap:OffsetMax="0">
+		<FormRef FormOID="Form.example_c_multievent_scheduling" OrderNumber="1" Mandatory="No" redcap:FormName="example_c_multievent_scheduling"/>
+	</StudyEventDef>
+	<FormDef OID="Form.example_a" Name="Example A: Timezone Scheduler Complete" Repeating="No" redcap:FormName="example_a">
+		<ItemGroupRef ItemGroupOID="example_a.record_id" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_a.appt_slot_1" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_a.appt_server_dt_1" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_a.example_a_complete" Mandatory="No"/>
+	</FormDef>
+	<FormDef OID="Form.example_b_multiple_appts" Name="Example B: Multiple Appointments Single Form" Repeating="No" redcap:FormName="example_b_multiple_appts">
+		<ItemGroupRef ItemGroupOID="example_b_multiple_appts.ex_b_appt_1" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_b_multiple_appts.ex_b_appt_dt_1" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_b_multiple_appts.ex_b_appt_2" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_b_multiple_appts.ex_b_appt_dt_2" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_b_multiple_appts.example_b_multiple_appts_complete" Mandatory="No"/>
+	</FormDef>
+	<FormDef OID="Form.example_c_multievent_scheduling" Name="Example C: Multi-Event Scheduling" Repeating="No" redcap:FormName="example_c_multievent_scheduling">
+		<ItemGroupRef ItemGroupOID="example_c_multievent_scheduling.ex_c_appt" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_c_multievent_scheduling.ex_c_appt_dt" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_c_multievent_scheduling.example_c_multievent_scheduling_complete" Mandatory="No"/>
+	</FormDef>
+	<FormDef OID="Form.example_d_repeating_instances" Name="Example D: Repeating Instances" Repeating="No" redcap:FormName="example_d_repeating_instances">
+		<ItemGroupRef ItemGroupOID="example_d_repeating_instances.ex_d_appt" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_d_repeating_instances.ex_d_appt_dt" Mandatory="No"/>
+		<ItemGroupRef ItemGroupOID="example_d_repeating_instances.example_d_repeating_instances_complete" Mandatory="No"/>
+	</FormDef>
+	<ItemGroupDef OID="example_a.record_id" Name="Example A: Timezone Scheduler Complete" Repeating="No">
+		<ItemRef ItemOID="record_id" Mandatory="No" redcap:Variable="record_id"/>
+		<ItemRef ItemOID="desc_record_must_exist" Mandatory="No" redcap:Variable="desc_record_must_exist"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_a.appt_slot_1" Name="An Example Appointment Showing Most Features" Repeating="No">
+		<ItemRef ItemOID="appt_slot_1" Mandatory="No" redcap:Variable="appt_slot_1"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_a.appt_server_dt_1" Name="Example A: Timezone Scheduler Complete" Repeating="No">
+		<ItemRef ItemOID="appt_server_dt_1" Mandatory="No" redcap:Variable="appt_server_dt_1"/>
+		<ItemRef ItemOID="appt_client_dt_text_1" Mandatory="No" redcap:Variable="appt_client_dt_text_1"/>
+		<ItemRef ItemOID="appt_description_1" Mandatory="No" redcap:Variable="appt_description_1"/>
+		<ItemRef ItemOID="appt_slot_filter_1" Mandatory="No" redcap:Variable="appt_slot_filter_1"/>
+		<ItemRef ItemOID="appt_cancel_url_1" Mandatory="No" redcap:Variable="appt_cancel_url_1"/>
+		<ItemRef ItemOID="appt_slot_url_1" Mandatory="No" redcap:Variable="appt_slot_url_1"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_a.example_a_complete" Name="Form Status" Repeating="No">
+		<ItemRef ItemOID="example_a_complete" Mandatory="No" redcap:Variable="example_a_complete"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_b_multiple_appts.ex_b_appt_1" Name="Example B - Showing you can schedule multiple events on the same form" Repeating="No">
+		<ItemRef ItemOID="ex_b_appt_1" Mandatory="No" redcap:Variable="ex_b_appt_1"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_b_multiple_appts.ex_b_appt_dt_1" Name="Example B: Multiple Appointments Single Form" Repeating="No">
+		<ItemRef ItemOID="ex_b_appt_dt_1" Mandatory="No" redcap:Variable="ex_b_appt_dt_1"/>
+		<ItemRef ItemOID="ex_b_appt_description_1" Mandatory="No" redcap:Variable="ex_b_appt_description_1"/>
+		<ItemRef ItemOID="ex_b_appt_cancel_url_1" Mandatory="No" redcap:Variable="ex_b_appt_cancel_url_1"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_b_multiple_appts.ex_b_appt_2" Name="Example B Second Visit on Same Form" Repeating="No">
+		<ItemRef ItemOID="ex_b_appt_2" Mandatory="No" redcap:Variable="ex_b_appt_2"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_b_multiple_appts.ex_b_appt_dt_2" Name="Example B: Multiple Appointments Single Form" Repeating="No">
+		<ItemRef ItemOID="ex_b_appt_dt_2" Mandatory="No" redcap:Variable="ex_b_appt_dt_2"/>
+		<ItemRef ItemOID="ex_b_appt_description_2" Mandatory="No" redcap:Variable="ex_b_appt_description_2"/>
+		<ItemRef ItemOID="ex_b_appt_cancel_url_2" Mandatory="No" redcap:Variable="ex_b_appt_cancel_url_2"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_b_multiple_appts.example_b_multiple_appts_complete" Name="Form Status" Repeating="No">
+		<ItemRef ItemOID="example_b_multiple_appts_complete" Mandatory="No" redcap:Variable="example_b_multiple_appts_complete"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_c_multievent_scheduling.ex_c_appt" Name="Example C - You can enable a form with a timezone event in multiple REDCap events, but you must configure the form for each event in the External Module Configuration." Repeating="No">
+		<ItemRef ItemOID="ex_c_appt" Mandatory="No" redcap:Variable="ex_c_appt"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_c_multievent_scheduling.ex_c_appt_dt" Name="Example C: Multi-Event Scheduling" Repeating="No">
+		<ItemRef ItemOID="ex_c_appt_dt" Mandatory="No" redcap:Variable="ex_c_appt_dt"/>
+		<ItemRef ItemOID="ex_c_appt_description" Mandatory="No" redcap:Variable="ex_c_appt_description"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_c_multievent_scheduling.example_c_multievent_scheduling_complete" Name="Form Status" Repeating="No">
+		<ItemRef ItemOID="example_c_multievent_scheduling_complete" Mandatory="No" redcap:Variable="example_c_multievent_scheduling_complete"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_d_repeating_instances.ex_d_appt" Name="Example D - You can use this module on repeating forms.  You only need one configuration for the field.  If a new instance hasn&#039;t yet been created when the form is rendered, it will create the instance when the appointment is selected." Repeating="No">
+		<ItemRef ItemOID="ex_d_appt" Mandatory="No" redcap:Variable="ex_d_appt"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_d_repeating_instances.ex_d_appt_dt" Name="Example D: Repeating Instances" Repeating="No">
+		<ItemRef ItemOID="ex_d_appt_dt" Mandatory="No" redcap:Variable="ex_d_appt_dt"/>
+		<ItemRef ItemOID="ex_d_appt_description" Mandatory="No" redcap:Variable="ex_d_appt_description"/>
+	</ItemGroupDef>
+	<ItemGroupDef OID="example_d_repeating_instances.example_d_repeating_instances_complete" Name="Form Status" Repeating="No">
+		<ItemRef ItemOID="example_d_repeating_instances_complete" Mandatory="No" redcap:Variable="example_d_repeating_instances_complete"/>
+	</ItemGroupDef>
+	<ItemDef OID="record_id" Name="record_id" DataType="text" Length="999" redcap:Variable="record_id" redcap:FieldType="text">
+		<Question><TranslatedText>Record ID</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="desc_record_must_exist" Name="desc_record_must_exist" DataType="text" Length="999" redcap:Variable="desc_record_must_exist" redcap:FieldType="descriptive">
+		<Question><TranslatedText>Record Must Exist
+This message is to remind you that when using this module, you must have an existing record before you can select an appointment from the slot database.  So, if this form were the first form in a project and exposed via a public survey url, you would need to enable &#039;one section/page&#039; in survey settings so that a record is created before the appointment selector is rendered.</TranslatedText><redcap:FormattedTranslatedText>Record Must Exist
+&lt;div style=&#039;font-weight:normal&#039;&gt;This message is to remind you that when using this module, you must have an existing record before you can select an appointment from the slot database.  So, if this form were the first form in a project and exposed via a public survey url, you would need to enable &#039;one section/page&#039; in survey settings so that a record is created before the appointment selector is rendered.&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_slot_1" Name="appt_slot_1" DataType="text" Length="999" redcap:Variable="appt_slot_1" redcap:FieldType="text" redcap:FieldNote="Text field to hold SLOT ID from Slot DB" redcap:SectionHeader="An Example Appointment Showing Most Features">
+		<Question><TranslatedText>Appointment Slot Field
+REQUIRED This is the field that stores the slot value.  This label will be visible to the end-user, so it might say:
+Schedule your study onboarding visit!
+If you use branching logic to show this field, I recommend you check the Prevent branching logic from hiding fields that have values under additional customizations.This is the only required field for using this module</TranslatedText><redcap:FormattedTranslatedText>Appointment Slot Field
+&lt;div style=&quot;font-weight:normal;&quot;&gt;&lt;b&gt;REQUIRED&lt;/b&gt; This is the field that stores the slot value.  This label will be visible to the end-user, so it might say:
+&lt;b&gt;Schedule your study onboarding visit!&lt;/b&gt;
+&lt;ul&gt;&lt;li&gt;If you use branching logic to show this field, I recommend you check the &lt;i&gt;Prevent branching logic from hiding fields that have values&lt;/i&gt; under additional customizations.&lt;/li&gt;&lt;li&gt;This is the only &lt;u&gt;required&lt;/u&gt; field for using this module&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_server_dt_1" Name="appt_server_dt_1" DataType="partialDatetime" Length="999" redcap:Variable="appt_server_dt_1" redcap:FieldType="text" redcap:TextValidationType="datetime_ymd" redcap:FieldNote="Mapping the slot&#039;s datetime to this project allows you to send appointment reminders based on the time of the select appointment." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appt Server Timestamp(Optional) If specified, the server timestamp for this appointment will be stored.  This can be used to automate reminders to the participant using datediff logic and notifications.  validate as Y-M-D H:M, any other format may cause errors.field must present in the Appointment Field Eventrecommended to use @HIDDEN-SURVEY or place this field on a different instrument so the participant does not see it in the survey</TranslatedText><redcap:FormattedTranslatedText>Appt Server Timestamp&lt;div style=&#039;font-weight:normal;&#039;&gt;&lt;i&gt;(Optional)&lt;/i&gt; If specified, the &lt;b&gt;server timestamp&lt;/b&gt; for this appointment will be stored.  This can be used to automate reminders to the participant using datediff logic and notifications.  &lt;ul&gt;&lt;li&gt;validate as &lt;b&gt;Y-M-D H:M&lt;/b&gt;, any other format may cause errors.&lt;/li&gt;&lt;li&gt;field must present in the Appointment Field Event&lt;/li&gt;&lt;li&gt;recommended to use &lt;code&gt;@HIDDEN-SURVEY&lt;/code&gt; or place this field on a different instrument so the participant does not see it in the survey&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_client_dt_text_1" Name="appt_client_dt_text_1" DataType="text" Length="999" redcap:Variable="appt_client_dt_text_1" redcap:FieldType="text" redcap:FieldNote="This TEXT field holds the nicely formatted client date/time and can be used to pipe into a reminder body." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appt Participant Text Date Field(Optional) If specified, a simplified version of the selected date will be stored, e.g. Wed, Nov 5th, 2025 at 9:00 AM CST.Must be a text field (do not validate it as a date/time as this will fail)recommended to use @HIDDEN-SURVEY or place this field on a different instrument so the participant does not see it in the survey
+</TranslatedText><redcap:FormattedTranslatedText>Appt Participant Text Date Field&lt;div style=&#039;font-weight:normal;&#039;&gt;&lt;i&gt;(Optional)&lt;/i&gt; If specified, a simplified version of the selected date will be stored, &lt;i&gt;e.g. Wed, Nov 5th, 2025 at 9:00 AM CST&lt;/i&gt;.&lt;ul&gt;&lt;li&gt;Must be a &lt;u&gt;text field&lt;/u&gt; (do not validate it as a date/time as this will fail)&lt;/li&gt;&lt;li&gt;recommended to use &lt;code&gt;@HIDDEN-SURVEY&lt;/code&gt; or place this field on a different instrument so the participant does not see it in the survey&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_description_1" Name="appt_description_1" DataType="text" Length="999" redcap:Variable="appt_description_1" redcap:FieldType="textarea" redcap:FieldNote="(optional) You can store the fancy-formatted appointment description, perhaps to be piped into a reminder email." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appt Description(Optional) The above appointment description can be saved into a field,  useful for piping into reminders with participants timezone.field must be of type noterecommended to use @HIDDEN-SURVEY or place this field on a different instrument so the participant does not see it in the survey</TranslatedText><redcap:FormattedTranslatedText>Appt Description&lt;div style=&#039;font-weight:normal;&#039;&gt;&lt;i&gt;(Optional)&lt;/i&gt; The above appointment description can be saved into a field,  useful for piping into reminders with participants timezone.&lt;ul&gt;&lt;li&gt;field must be of type &lt;u&gt;note&lt;/u&gt;&lt;/li&gt;&lt;li&gt;recommended to use &lt;code&gt;@HIDDEN-SURVEY&lt;/code&gt; or place this field on a different instrument so the participant does not see it in the survey&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_slot_filter_1" Name="appt_slot_filter_1" DataType="text" Length="999" redcap:Variable="appt_slot_filter_1" redcap:FieldType="text" redcap:FieldAnnotation="@_disabled_CALCTEXT(if(mod([record_id]/2,0),&quot;EVEN&quot;,&quot;&quot;))
+@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appt Slot Filter(Optional) If set, only those slots that have a matching slot filter value will be displayed.You can use a @CALCTEXT field to create complex slot filter values based on other field values, but the values used in the logic must exist before this form is rendered -- for this reason a @CALCTEXT field on the same page as the appointment selector field may not operate as intended, i.e. use the multipages pagination in survey settings to save the value before scheduling the appointmentExample: @CALCTEXT(if(mod([~record_id_field~]/2,0),&quot;EVEN&quot;,&quot;ODD&quot;)) would filter for slot dbs that are &#039;ODD&#039; or &#039;EVEN&#039; in their slot_filter valueOr, if you had a random_group field, you could use this for the slot-filter and only those randomized to certain groups would be able to book certain appointment slotsThis can seem complex, so review documentation if you have questions</TranslatedText><redcap:FormattedTranslatedText>Appt Slot Filter&lt;div style=&#039;font-weight:normal;&#039;&gt;&lt;i&gt;(Optional)&lt;/i&gt; If set, only those slots that have a matching &lt;code&gt;slot filter value&lt;/code&gt; will be displayed.&lt;ul&gt;&lt;li&gt;You can use a &lt;code&gt;@CALCTEXT&lt;/code&gt; field to create complex slot filter values based on other field values, but the values used in the logic must exist before this form is rendered -- for this reason a @CALCTEXT field on the same page as the appointment selector field may not operate as intended, &lt;i&gt;i.e.&lt;/i&gt; use the multipages pagination in survey settings to save the value before scheduling the appointment&lt;/li&gt;&lt;li&gt;Example: &lt;code&gt;@CALCTEXT(if(mod([~record_id_field~]/2,0),&quot;EVEN&quot;,&quot;ODD&quot;))&lt;/code&gt; would filter for slot dbs that are &#039;ODD&#039; or &#039;EVEN&#039; in their &lt;code&gt;slot_filter&lt;/code&gt; value&lt;/li&gt;&lt;li&gt;Or, if you had a &lt;code&gt;random_group&lt;/code&gt; field, you could use this for the slot-filter and only those randomized to certain groups would be able to book certain appointment slots&lt;/li&gt;&lt;li&gt;This can seem complex, so review documentation if you have questions&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_cancel_url_1" Name="appt_cancel_url_1" DataType="text" Length="999" redcap:Variable="appt_cancel_url_1" redcap:FieldType="text" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appointment Cancel Url(Optional) This field holds a url that will allow the user to cancel this appointment.  Useful for putting into an email confirmation about the appointmentThis should be a text fieldrecommended to use @HIDDEN-SURVEY or place this field on a different instrument so the participant does not see it in the survey
+Cancel Appt</TranslatedText><redcap:FormattedTranslatedText>Appointment Cancel Url&lt;div style=&quot;font-weight:normal;&quot;&gt;&lt;i&gt;(Optional)&lt;/i&gt; This field holds a url that will allow the user to cancel this appointment.  Useful for putting into an email confirmation about the appointment&lt;ul&gt;&lt;li&gt;This should be a text field&lt;/li&gt;&lt;li&gt;recommended to use &lt;code&gt;@HIDDEN-SURVEY&lt;/code&gt; or place this field on a different instrument so the participant does not see it in the survey&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+&lt;a href=&quot;[appt_cancel_url_1]&quot; target=&quot;_blank&quot;&gt;Cancel Appt&lt;/a&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="appt_slot_url_1" Name="appt_slot_url_1" DataType="text" Length="999" redcap:Variable="appt_slot_url_1" redcap:FieldType="text" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Appointment Slot Record URL
+(Optional) If set, the url for the selected slot database entry will be stored.  You can then pipe this into a button so, as an admin, you can jump from the current appointment record to the corresponding slot database record.This field should be @HIDDEN-SURVEY as it is really only used for piping purposes.
+GOTO Slot [appt_slot_1]</TranslatedText><redcap:FormattedTranslatedText>Appointment Slot Record URL
+&lt;div style=&#039;font-weight:normal;&#039;&gt;&lt;i&gt;(Optional)&lt;/i&gt; If set, the url for the selected slot database entry will be stored.  You can then pipe this into a button so, as an admin, you can jump from the current appointment record to the corresponding slot database record.&lt;ul&gt;&lt;li&gt;This field should be &lt;code&gt;@HIDDEN-SURVEY&lt;/code&gt; as it is really only used for piping purposes.&lt;/div&gt;
+&lt;a href=&#039;[appt_slot_url_1]&#039; target=&#039;_BLANK&#039;&gt;GOTO Slot [appt_slot_1]&lt;/a&gt;</redcap:FormattedTranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="example_a_complete" Name="example_a_complete" DataType="text" Length="1" redcap:Variable="example_a_complete" redcap:FieldType="select" redcap:SectionHeader="Form Status">
+		<Question><TranslatedText>Complete?</TranslatedText></Question>
+		<CodeListRef CodeListOID="example_a_complete.choices"/>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_1" Name="ex_b_appt_1" DataType="text" Length="999" redcap:Variable="ex_b_appt_1" redcap:FieldType="text" redcap:SectionHeader="Example B - Showing you can schedule multiple events on the same form">
+		<Question><TranslatedText>Schedule your First Visit:</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_dt_1" Name="ex_b_appt_dt_1" DataType="partialDatetime" Length="999" redcap:Variable="ex_b_appt_dt_1" redcap:FieldType="text" redcap:TextValidationType="datetime_ymd" redcap:FieldNote="Mapping the slot&#039;s datetime to this project allows you to send appointment reminders based on the time of the select appointment." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 1 Timestamp (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_description_1" Name="ex_b_appt_description_1" DataType="text" Length="999" redcap:Variable="ex_b_appt_description_1" redcap:FieldType="textarea" redcap:FieldNote="(optional) You can store the fancy-formatted appointment description, perhaps to be piped into a reminder email." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 1 Appt Description (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_cancel_url_1" Name="ex_b_appt_cancel_url_1" DataType="text" Length="999" redcap:Variable="ex_b_appt_cancel_url_1" redcap:FieldType="text" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 1 Appointment Cancel Url (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_2" Name="ex_b_appt_2" DataType="text" Length="999" redcap:Variable="ex_b_appt_2" redcap:FieldType="text" redcap:SectionHeader="Example B Second Visit on Same Form" redcap:BranchingLogic="[ex_b_appt_1] &lt;&gt; &#039;&#039;">
+		<Question><TranslatedText>Schedule your Second Visit:</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_dt_2" Name="ex_b_appt_dt_2" DataType="partialDatetime" Length="999" redcap:Variable="ex_b_appt_dt_2" redcap:FieldType="text" redcap:TextValidationType="datetime_ymd" redcap:FieldNote="Mapping the slot&#039;s datetime to this project allows you to send appointment reminders based on the time of the select appointment." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 2 Timestamp (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_description_2" Name="ex_b_appt_description_2" DataType="text" Length="999" redcap:Variable="ex_b_appt_description_2" redcap:FieldType="textarea" redcap:FieldNote="(optional) You can store the fancy-formatted appointment description, perhaps to be piped into a reminder email." redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 2 Appt Description (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_b_appt_cancel_url_2" Name="ex_b_appt_cancel_url_2" DataType="text" Length="999" redcap:Variable="ex_b_appt_cancel_url_2" redcap:FieldType="text" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Visit 2 Appointment Cancel Url (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="example_b_multiple_appts_complete" Name="example_b_multiple_appts_complete" DataType="text" Length="1" redcap:Variable="example_b_multiple_appts_complete" redcap:FieldType="select" redcap:SectionHeader="Form Status">
+		<Question><TranslatedText>Complete?</TranslatedText></Question>
+		<CodeListRef CodeListOID="example_b_multiple_appts_complete.choices"/>
+	</ItemDef>
+	<ItemDef OID="ex_c_appt" Name="ex_c_appt" DataType="text" Length="999" redcap:Variable="ex_c_appt" redcap:FieldType="text" redcap:SectionHeader="Example C - You can enable a form with a timezone event in multiple REDCap events, but you must configure the form for each event in the External Module Configuration.">
+		<Question><TranslatedText>Schedule For Your Event [event-name] Visit:</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_c_appt_dt" Name="ex_c_appt_dt" DataType="partialDatetime" Length="999" redcap:Variable="ex_c_appt_dt" redcap:FieldType="text" redcap:TextValidationType="datetime_ymd" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Event Timestamp (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_c_appt_description" Name="ex_c_appt_description" DataType="text" Length="999" redcap:Variable="ex_c_appt_description" redcap:FieldType="textarea" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Event Appt Description (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="example_c_multievent_scheduling_complete" Name="example_c_multievent_scheduling_complete" DataType="text" Length="1" redcap:Variable="example_c_multievent_scheduling_complete" redcap:FieldType="select" redcap:SectionHeader="Form Status">
+		<Question><TranslatedText>Complete?</TranslatedText></Question>
+		<CodeListRef CodeListOID="example_c_multievent_scheduling_complete.choices"/>
+	</ItemDef>
+	<ItemDef OID="ex_d_appt" Name="ex_d_appt" DataType="text" Length="999" redcap:Variable="ex_d_appt" redcap:FieldType="text" redcap:SectionHeader="Example D - You can use this module on repeating forms.  You only need one configuration for the field.  If a new instance hasn&#039;t yet been created when the form is rendered, it will create the instance when the appointment is selected.">
+		<Question><TranslatedText>Schedule For Instance [current-instance]:</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_d_appt_dt" Name="ex_d_appt_dt" DataType="partialDatetime" Length="999" redcap:Variable="ex_d_appt_dt" redcap:FieldType="text" redcap:TextValidationType="datetime_ymd" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Event Timestamp (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="ex_d_appt_description" Name="ex_d_appt_description" DataType="text" Length="999" redcap:Variable="ex_d_appt_description" redcap:FieldType="textarea" redcap:FieldAnnotation="@HIDDEN-SURVEY">
+		<Question><TranslatedText>Event Appt Description (hidden)</TranslatedText></Question>
+	</ItemDef>
+	<ItemDef OID="example_d_repeating_instances_complete" Name="example_d_repeating_instances_complete" DataType="text" Length="1" redcap:Variable="example_d_repeating_instances_complete" redcap:FieldType="select" redcap:SectionHeader="Form Status">
+		<Question><TranslatedText>Complete?</TranslatedText></Question>
+		<CodeListRef CodeListOID="example_d_repeating_instances_complete.choices"/>
+	</ItemDef>
+	<CodeList OID="example_a_complete.choices" Name="example_a_complete" DataType="text" redcap:Variable="example_a_complete">
+		<CodeListItem CodedValue="0"><Decode><TranslatedText>Incomplete</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="1"><Decode><TranslatedText>Unverified</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="2"><Decode><TranslatedText>Complete</TranslatedText></Decode></CodeListItem>
+	</CodeList>
+	<CodeList OID="example_b_multiple_appts_complete.choices" Name="example_b_multiple_appts_complete" DataType="text" redcap:Variable="example_b_multiple_appts_complete">
+		<CodeListItem CodedValue="0"><Decode><TranslatedText>Incomplete</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="1"><Decode><TranslatedText>Unverified</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="2"><Decode><TranslatedText>Complete</TranslatedText></Decode></CodeListItem>
+	</CodeList>
+	<CodeList OID="example_c_multievent_scheduling_complete.choices" Name="example_c_multievent_scheduling_complete" DataType="text" redcap:Variable="example_c_multievent_scheduling_complete">
+		<CodeListItem CodedValue="0"><Decode><TranslatedText>Incomplete</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="1"><Decode><TranslatedText>Unverified</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="2"><Decode><TranslatedText>Complete</TranslatedText></Decode></CodeListItem>
+	</CodeList>
+	<CodeList OID="example_d_repeating_instances_complete.choices" Name="example_d_repeating_instances_complete" DataType="text" redcap:Variable="example_d_repeating_instances_complete">
+		<CodeListItem CodedValue="0"><Decode><TranslatedText>Incomplete</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="1"><Decode><TranslatedText>Unverified</TranslatedText></Decode></CodeListItem>
+		<CodeListItem CodedValue="2"><Decode><TranslatedText>Complete</TranslatedText></Decode></CodeListItem>
+	</CodeList>
+</MetaDataVersion>
+</Study>
+</ODM>

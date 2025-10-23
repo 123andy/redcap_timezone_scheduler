@@ -114,20 +114,20 @@ It is recommended you import a csv with new slots.  Do not REUSE slot_id numbers
 </redcap:FormattedTranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="slot_filter" Name="slot_filter" DataType="text" Length="999" redcap:Variable="slot_filter" redcap:FieldType="text" redcap:FieldNote="If set, only slots with a value that matches the value of a specified &lt;code&gt;slot-filter-field&lt;/code&gt; in the appointment project will be returned">
-		<Question><TranslatedText>Appt Slot Filter
-If set, only a record that presents this value in the slot-filter-field setting will be able to use this slot.  See documentation for examples.</TranslatedText><redcap:FormattedTranslatedText>Appt Slot Filter
-&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only a record that presents this value in the &lt;code&gt;slot-filter-field&lt;/code&gt; setting will be able to use this slot.  See documentation for examples.&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
+		<Question><TranslatedText>Slot Filter Value
+If set, only a record that presents this value as configured the slot-filter-field setting will be able to use this slot.  See documentation for examples.</TranslatedText><redcap:FormattedTranslatedText>Slot Filter Value
+&lt;div style=&#039;font-weight:normal;&#039;&gt;If set, only a record that presents this value as configured the &lt;code&gt;slot-filter-field&lt;/code&gt; setting will be able to use this slot.  See documentation for examples.&lt;/div&gt;</redcap:FormattedTranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="custom_field_1" Name="custom_field_1" DataType="text" Length="999" redcap:Variable="custom_field_1" redcap:FieldType="text" redcap:FieldNote="you can add other fields to this project if you like..." redcap:SectionHeader="USER EDITABLE FIELDS
 &lt;div style=&#039;font-weight:normal&#039;&gt;As the slot database admin, you can add additional fields in this section.  For example, you could keep track of who took the meeting, what the outcome was, etc...  Just do not modify the field names in other sections.&lt;/div&gt;" redcap:FieldAnnotation="Add whatever custom fields you feel you need -- they will be ignored by the scheduler tool.">
 		<Question><TranslatedText>Custom Field 1</TranslatedText></Question>
 	</ItemDef>
 	<ItemDef OID="delete_warning" Name="delete_warning" DataType="text" Length="999" redcap:Variable="delete_warning" redcap:FieldType="descriptive" redcap:BranchingLogic="[source_record_url] &lt;&gt; &#039;&#039;">
-		<Question><TranslatedText>Because this slot is reserved, you should not delete this slot before clearing the appointment.  
+		<Question><TranslatedText>Because this slot is reserved, you should not delete this slot before clearing the appointment.
 
 To clear a reserved slot, first visit the appointment record and cancel the appointment.  Then return and this warning should no longer be here and it is save to remove the slot.
 
-Goto Source Appointment Record</TranslatedText><redcap:FormattedTranslatedText>&lt;div class=&#039;alert alert-warning&#039;&gt;Because this slot is reserved, you should not delete this slot before clearing the appointment.  
+Goto Source Appointment Record</TranslatedText><redcap:FormattedTranslatedText>&lt;div class=&#039;alert alert-warning&#039;&gt;Because this slot is reserved, you should not delete this slot before clearing the appointment.
 
 To clear a reserved slot, first visit the appointment record and cancel the appointment.  Then return and this warning should no longer be here and it is save to remove the slot.
 
