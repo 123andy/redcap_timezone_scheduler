@@ -70,31 +70,45 @@ To illustrate (and test) that this module works with classical, longitudinal, an
 This example shows a variety of possible configurations but also requires a somewhat painstaking configuration in step 5.
 
 ### 4. Enable and Configure the Timezone Scheduler EM on the Example Project
-Enable the `Timezone Scheduler vx.y.z` em on your the example project.  Goto the configuration page.
- The example project contains 6 different configurations.  This is more than most projects will ever user, so this is the exact configuration:
+Enable the `Timezone Scheduler vx.y.z` em on your the example project created from the XML file above.  Goto the configuration page.
+
+The complete example project contains 6 different timezone scheduler configurations.  This is way more than most projects will ever use.  So, to get started, let's break this down into a few steps.
 
 1. Click on `Configure` from the External Modules page in the Example Project
-2. Select the `Timezone Database` you wish to use.  Leave Blank for all Timezones.  You can edit this later.
-3. Since we have 6 total configurations, you need to press the '+' button next to configuration 1 **five** more times.
-4. Configure each as follows:
+2. Select the `Timezone Database` you wish to use.  Leave Blank for all Timezones.  You can return and edit this later if you like.  Note that if someone is outside of one of the timezone entries, they can still view appointments in their browser-native timezone.
+
+
+3. We have a total of six configurations in this example project -- lets start with a partial configuration of example 1.
+
+#### Start with a partial Example 1
+
+For `Example A` we will first ONLY program the two required fields:
    1. Example A:
-      - Slot DB => The PID for your Slot Database created in Step 1 - this will be the same for all 6 configurations.
+      - Slot DB => The PID for your Slot Database you created and populated above
       - Appointment Field => `appt_slot_1`
       - Appointment Field Event => `Arm_1_Event_1`
+      > [!NOTE]
+      > Save and let's test with only two configuration options set.
+
+      > Try creating a record.  You might get a warning about the record needing to 'exist' first.  Do 'save and continue' and this should go away.  See if you can select an appointment.  Success?  Return to the confifguration page and add more options
+
+      > After adding a few options, go and make a NEW record (or return to the existing record and cancel the appointment and make a new one).  You should be able to see what has changed with each option you configure.
+
       - Appointment Button Label => leave blank or put something there if you want to test it out
       - Appointment Server DateTime Field => `appt_server_dt_1`
-      - Appointment Appointment Description Format => leave blank, you can come back later and play with this if you like...
+      - Appointment Appointment Description Format => leave blank, you can come back later and play with this if you want to customize what the user sees when an appointment is saved.
       - Appointment Description Field => `appt_description_1`
       - Slot Filter Field => `appt_slot_filter_1`
       - Appointment Participant Text Date Field => `appt_part_text_date_1`
       - Cancel Appointment URL => `appt_cancel_url_1`
       - Slot Record URL => `appt_slot_url_1`
       > [!NOTE] Whew!
-      > That was the full set of options.  The others are much simpler.
+      > That was the full set of options.  The others are much simpler, but now you have an idea of what's required (only two config options) and what all the other stuff does.
    2. Example B Appt 1
+      > [!NOTE] We are adding a second option.  To do this with the External Module Configuration tool, you click on the `+` button on the right of the first field in option 1 to create another configuration instance.  Play around with the `+` and `-` buttons a few times so you understand how they work.  Since we have a 6 total configurations in this text project, you will eventually need to press the `+` button **five** more times (not necessarily all at once, though).
       - Slot DB => same as before
       - Appointment Field => `ex_b_appt_1`
-      - Event => Event 1
+      - Event => `Arm_1_Event_1`
       - Appointment Server DateTime Field => `ex_b_appt_dt_1`
       - Appointment Description Field => `ex_b_appt_description_1`
       - Cancel Appointment URL => `ex_b_appt_cancel_url_1`
@@ -110,32 +124,32 @@ Enable the `Timezone Scheduler vx.y.z` em on your the example project.  Goto the
       - Appointment Field => `ex_c_appt`
       - Event => Event 1
       - Appointment Server DateTime Field => `ex_c_appt_dt`
-   5. Example D (repeating instances)
-      - Slot DB => same as before
-      - Appointment Field => `ex_d_appt`
-      - Event => Event 1
-      - Appointment Server DateTime Field => `ex_d_appt_dt`
-   6. Example C (second event)
+   5. Example C (second event)
+      > [!NOTE] If you have a form (like Example C) that is enabled on more than one event, you need to create a configuration for each event.  So, this is the configuration for field `ex_c_appt` but on the SECOND event in the project.
       - Slot DB => same as before
       - Appointment Field => `ex_c_appt`
       - Event => **Event 2**
       - Appointment Server DateTime Field => `ex_c_appt_dt`
+   6. Example D (repeating instances)
+      - Slot DB => same as before
+      - Appointment Field => `ex_d_appt`
+      - Event => Event 1
+      - Appointment Server DateTime Field => `ex_d_appt_dt`
 
-Perhaps, in retrospect, I should have started with just a simple example.  The order in the configuration doesn't matter, so you could skip to one of the easier ones first.
+So, now you have seen the configuration page and how it controls the appointments.  Obviously the UI could use some improvements, but once configured it should be stable.
 
 ### 5. Testing
-Now you should be able to create a record or goto the public survey url for the project and start experimenting around.
+This is an External Module that relies on two projects being in-sync.  Therefore, you should always TEST, TEST, and TEST some more to make sure it is configured correctly.  For example, if one of your fields has the wrong field-type or field validation, it could cause errorrs.  Start slow, work incrementally - and when you are ready to move to production, clear the data from the test project and make sure you reset or clear the Slot Database Project as well.
+
 
 ## Error and Debug Configuration
 This external module uses the [emLogger module](https://github.com/susom/redcap-em-logger) to write DEBUG, INFO, and ERROR messages to a file on your server.  It is not required for operation, but can be useful for troubleshooting.  If you have `emLogger` installed and configured, you can enable it either system-wide or project-wide in the external module configuration.  If enabled on a project, javascript debugging will also be enabled and you should see messages in the browser javascript console.
 
+To get started with debugging:
 
-## Terminology ###
-A bit about terminology here:
-
-- A SLOT is a potential meeting date/time.  You start by creating a database of potential meeting times, called the Slot DB.
-- The term Appointment Field, refers to a survey project where you want a user to pick a SLOT and reserve it for their record.  Once the slot is reserved, it then has a linked Appointment entry.  It can be confusing... sorry.
-
+1. Installing the emDebugger External Module
+2. Getting it configured so you have logs outputting to a directory on your server, and
+3. Enable debugging on your test project (bottom checkbox in the Config page).
 
 ## About the Slot Database Project(s)
 
@@ -188,39 +202,20 @@ In a project where you want to use this EM, you will have to enable the EM and t
 | Cancel Appointment URL | *(Optional)* This field will contain a URL that will goto a page to cancel the appointment.  This is useful if you wish to give participants the ability to cancel an appointment in an email notification. |
 | Slot Record URL | *(Optional)* This field will contain a URL to the Slot DB Project for the reserved appointment.  Useful for an admin to be able to jump to the Slot database. |
 
-### Using the Slot Filter Field ###
+### Using the Slot Filter Field
+It is possible to have many different 'Appointment Types' in a single slot database by using the `Slot Filter` option.
+
+When configuring your appointment, you can specify a `Slot Filter Field`.  If specified, any given record will only see appointments from slots in the slot DB who have a matching value for the `Slot Filter Value`.
+
 Imagine you randomize subjects into two groups and store the result in a field called `rand_group` with values of `A` or `B`.  You then want the subjects to select a slot for a follow-up appointment, however, for group A you want to budget 2 hours while group B is only 30 minutes.  How do you present the correct slots to the record?  There are two options:
 1. You could create two different appointment fields with two different External Module configurations and use branching logic to only show the correct appointment button for the corresponding group.  For each configuration, you would create a separate Slot Database project.  This requires a lot of overhead and complication.  So, instead, we came up with option 2.
 2. You can use the `Slot Filter Field` to select the field for the record that contains the different value.  In this case, we would select `rand_group`.  Then, in the Slot Database project, you would mark a number of your slots as either `A` or `B` in the `Appt Slot Filter` field.  So, if a record is in group `A`, they will only see slots designated for group `A`
 > [!NOTE]
-> If your sorting logic is more complicated, you can use a `@CALCTEXT` field to create the equivalent of the `rand_group` in the example above.  For example, `@CALCTEXT(if([rand_group]='A', if([gender]='M', "A-M", "A-F"), if([rand_group]='B', if([gender]='M', "B-M", B-F"), "")))`.  This would produce blank for non-randomized, A-M, A-F, B-M, B-F - depending on what you needed.
+> If your sorting logic is more complicated, you can use a `@CALCTEXT` field to create the equivalent of the `rand_group` in the example above.  For example, `@CALCTEXT[rand_group]-[gender]`.  This would produce string values for all combinations of randomized and gender values.  Depending on what you needed, you could specify appointment types accordingly.
 > Please also note that the value for the `Slot Filter Field` must already exist and be saved for the record when the survey/form is rendered.  So, for surveys it is sometimes best to do one-page-per-section.
 
 
-## Admin Page ##
-If you have `Design` rights on the project, you will be able to see a link on the sidebar for `Timezone Scheduler Admin`.
-It has a table of appointments and slots for your project.  There are buttons that will perform actions on your appointments and slots.
-
-
-Use `Appointments` to review all scheduled slots in your project.  This view will show linked `Slots` but omits empty slots.
-Use `Slots` to review ALL slots in your Slot Databases.  This shows both used and unused `Slots`.
-
-- `Errors` - check this column to highlight any issues which can occur if you are manually editing either the appointment fields or the slot fields.
-- Shortcut buttons will open the Appointment Form or the Slot DB Entry for each slot
-
-There are many actions you can take from the summary tables:
-
-- `Reset Appt` will clear the scheduled appointment and empty out the values associated with the appointment.  If there is an associated slot, you want to make sure to cancel the slot as well, otherwise it will be orphaned.
-- `Reset Slot` will clear and pointers to an appointment and make the slot available again.
-- `Reset Appt and Slot` clears both -- esentially undoing the appointment.  This is what you want to use in most cases as it should not orphan any entires from the Slot or Appt projects.
-- `Cancel Slot` is a special action that markes an unused slot as `reserverd` and puts a comment into the `source-project-title` field of who cancelled it.  This is useful if you need to remove a bunch of slots from the dropdowns quickly, say if a meeting comes up or you have vacation.    You can simply mark them as cancelled and any new participats will not be able to book them.
-
-> [!NOTE] Cancelling Appointments
-> Please note that the participant is not currently notified if you cancel an appointment.  Perhaps this is a feature request.  If you wish to cancel an appointment, you should notify the participant through some other means.
-
-
 ### Customizing the Appointment Description ###
-
 When you configure an appointment in the External Module Configuration page, you can override the Appointment Description and optionally save it to a text field in the project.  Below is the syntax for the override:
 
 | Token | Description |
@@ -257,17 +252,30 @@ will render as:
 if the client and server timezones match.
 
 
-### Using the Slot Filter Option ###
-It is possible to have many different 'Appointment Types' in a single slot database by using the `Slot Filter` option.
 
-When configuring your appointment, you can specify a `Slot Filter Field`.  If specified, the appointment will only show those slots from the slot database who have a matching value for the `Slot Filter Field`.
-
-For example, suppose you randomizes participants into two groups, `A` and `B` using the field `[random_group]`.  If you set the `Slot Filter Field` = `random_group`, it will filter available appointments to only those unscheduled slots where the `Slot Filter` attribute maches.
-
-If your filter includes a combination of two fields from the participant record, such as gender + random_group, you can accomplish this using a `@CALCTEXT` field, e.g. `@CALCTEXT([gender]-[random_group])` which would produce filter values like `1A, 1B, 2A, 2B`...  Note, that in order for this to work, the `@CALCTEXT` field must be SAVED before the appointment is rendered, so it should be set on a previous section or a multipage survey or a previous instrument.
+## Admin Page ##
+If you have `Design` rights on the project, you will be able to see a link on the sidebar for `Timezone Scheduler Admin`.
+It has a table of appointments and slots for your project.  There are buttons that will perform actions on your appointments and slots.
 
 
-### Future Ideas:
+Use `Appointments` to review all scheduled slots in your project.  This view will show linked `Slots` but omits empty slots.
+Use `Slots` to review ALL slots in your Slot Databases.  This shows both used and unused `Slots`.
+
+- `Errors` - check this column to highlight any issues which can occur if you are manually editing either the appointment fields or the slot fields.
+- Shortcut buttons will open the Appointment Form or the Slot DB Entry for each slot
+
+There are many actions you can take from the summary tables:
+
+- `Reset Appt` will clear the scheduled appointment and empty out the values associated with the appointment.  If there is an associated slot, you want to make sure to cancel the slot as well, otherwise it will be orphaned.
+- `Reset Slot` will clear and pointers to an appointment and make the slot available again.
+- `Reset Appt and Slot` clears both -- esentially undoing the appointment.  This is what you want to use in most cases as it should not orphan any entires from the Slot or Appt projects.
+- `Cancel Slot` is a special action that markes an unused slot as `reserverd` and puts a comment into the `source-project-title` field of who cancelled it.  This is useful if you need to remove a bunch of slots from the dropdowns quickly, say if a meeting comes up or you have vacation.    You can simply mark them as cancelled and any new participats will not be able to book them.
+
+> [!NOTE] Cancelling Appointments
+> Please note that the participant is not currently notified if you cancel an appointment.  Perhaps this is a feature request.  If you wish to cancel an appointment, you should notify the participant through some other means.
+
+
+## Future Ideas:
 - Improving the configuration page to make it easier!
 - Minimum hours before event to book:  e.g. 4 means you can't book at 4pm slot at 12:30pm.  Leave to 0/blank to ignore
 - Maximum days before event to book:  e.g. only let people book 2 weeks into the future
@@ -275,5 +283,6 @@ If your filter includes a combination of two fields from the participant record,
 - email address fields and standard messages you can use to notify when appointments are booked or cancelled...
 - Add to calendar button
 - Having a calendar view of the slot database so people could view it in Outlook/Google
+- Internationalize this module (obviously)
 
 

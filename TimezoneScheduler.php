@@ -60,8 +60,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $config = $this->filter_tz_config($instrument, $event_id);
 
         $this->injectJSMO([
-            "config" => $config,
-            "record_id" => $record,
+            "config" => $this->escape($config),
+            "record_id" => $this->escape($record),
             "repeat_instance" => $repeat_instance,
             "context" => __FUNCTION__
         ], "initializeInstrument");
@@ -75,8 +75,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $config = $this->filter_tz_config($instrument, $event_id);
 
         $this->injectJSMO([
-            "config" => $config,
-            "record_id" => $record,
+            "config" => $this->escape($config),
+            "record_id" => $this->escape($record),
             "repeat_instance" => $repeat_instance,
             "context" => __FUNCTION__
         ], "initializeInstrument");
@@ -1900,20 +1900,19 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $this->initializeJavascriptModuleObject();
 
         $cmds = [];
-        $cmds[] = "const module = " . $this->getJavascriptModuleObjectName();
-        if (!empty($data)) $cmds[] = "module.data = " . json_encode($data);
-        if ($this->emLoggerDebugMode()) $cmds[] = "module.debugger=true";
-        if (!empty($init_method)) $cmds[] = "module.afterRender(module." . $init_method . ")";
 
-        // $this->emDebug($cmds);
+        // Taint data to prevent XSS
+        $data = $this->escape($data);
+
+        $cmds[] = "const module = " . $this->getJavascriptModuleObjectName();
+        if (!empty($data))              $cmds[] = "module.data = " . json_encode($data);
+        if ($this->emLoggerDebugMode()) $cmds[] = "module.debugger=true";
+        if (!empty($init_method))       $cmds[] = "module.afterRender(module." . $init_method . ")";
+
         $spacer=";\n".str_repeat(" ",16);
         ?>
-        <!--
-         Load Add to Calendar Button library
-         Copied to EM on 9/20/25 from https://cdn.jsdelivr.net/npm/add-to-calendar-button
-         Submit PR to request update
-        -->
-        <!-- <script src="<?=$this->getUrl("assets/add-to-calendar-button.js",true)?>"></script> -->
+
+
         <script src="<?=$this->getUrl("assets/jsmo.js",true)?>"></script>
         <script>
             (function() {

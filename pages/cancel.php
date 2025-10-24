@@ -9,14 +9,13 @@ use \Exception;
 
 // https://redcap.local/redcap_v15.3.3/ExternalModules/?prefix=timezone_scheduler&page=cancel&pid=38&NOAUTH?config=appt_slot_1-88&key=73l8gRjwLftklgfdXT%2BMduB7a4PKbzSQAlJ03U14mx20Tnei5RxGvH5goVdohMjy
 
-
 try {
 
     // Initial goal is to validate the key and config, then show a confirmation message or error message
     $errors = [];
 
     // Load the key which is encrypted context when reservation was made
-    $key = $_GET['key'] ?? '';
+    $key = $module->escape($_GET['key'] ?? '');
 
     // Decrupt the key to get the config, slot_id, record, event_id, repeat_instance, and reserved_ts
     list($config_key, $slot_id, $record, $event_id, $repeat_instance, $reserved_ts) = explode("|", decrypt($key));
@@ -54,7 +53,7 @@ try {
     if (empty($errors)) {
         // Generate a confirmation token that can be passed in if the user confirms the cancellation
         $confirmation_token = encrypt($config_key . "|" . strtotime('now'));
-        $description = $slot['participant_description'] ?? "Unable to retrieve description";
+        $description = $module->escape($slot['participant_description']) ?? "Unable to retrieve description";
         $module->emDebug("Generated confirmation token: $confirmation_token");
     } else {
         $module->emError("Errors found in cancel page: ", $errors);

@@ -12,8 +12,8 @@
     "authors": [
         {
             "name": "Andy Martin",
-            "email": "andy123@stanford.edu",
-            "institution": "Stanford Medicine"
+            "email": "123andy@gmail.com",
+            "institution": "Stanford University"
         }
     ],
 
@@ -22,7 +22,6 @@
     "enable-ajax-logging": false,
 
     "auth-ajax-actions": [
-        "TestAction",
         "getTimezones",
         "getAppointmentData",
         "getAppointmentOptions",
@@ -31,16 +30,16 @@
         "reserveSlot",
         "addToCalendar",
         "cancelAppointmentFromUrl",
+
         "getAppointmentVerificationData",
+        "getSlotsVerificationData",
         "resetAppointment",
         "resetSlotAndAppointment",
-        "getSlotsVerificationData",
         "cancelSlot",
         "resetSlot"
     ],
 
     "no-auth-ajax-actions": [
-        "TestAction",
         "getTimezones",
         "getAppointmentData",
         "getAppointmentOptions",
