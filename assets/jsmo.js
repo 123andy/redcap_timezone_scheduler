@@ -134,7 +134,7 @@
 
                 // The REDCap js variable pageFields contains those fields on the rendered survey page (or section if multi-page)
                 if ($input.length === 0) {
-                    // module.debug("No input field found for:", field);
+                    //module.debug("No input field found for:", field);
                     continue;
                 } else {
                     fields_on_page++;
@@ -147,6 +147,15 @@
 
                 // Hide the current contents of the slot-id field
                 $td.children().wrapAll('<div class="tz_data_wrapper"></div>');
+
+                // For mobile view, there is no td.data that is used.  Instead, we need to find:
+                // <span data-kind="field-value">
+
+                //if (isMobileDevice) {   // Alternately, this might be the better way to do it, but will stick with the TD being empty for now.
+                if ($td.length === 0) {
+                    $td = $input.closest('span[data-kind="field-value"]');
+                    module.debug("Mobile view detected, using span[data-kind='field-value'] for field:", field, $td);
+                }
 
                 // Render an error message if the survey/form is on a not-saved record_id
                 if(module.data.record_id === null) {
