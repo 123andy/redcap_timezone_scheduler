@@ -154,6 +154,7 @@
                 //if (isMobileDevice) {   // Alternately, this might be the better way to do it, but will stick with the TD being empty for now.
                 if ($td.length === 0) {
                     $td = $input.closest('span[data-kind="field-value"]');
+                    $input.hide();  // The input isn't hidden by default on the mobile view, so I'm forcing it to be hidden...
                     module.debug("Mobile view detected, using span[data-kind='field-value'] for field:", field, $td);
                 }
 
