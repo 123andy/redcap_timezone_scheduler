@@ -11,7 +11,7 @@ This module converts a text field into an appointment selector button:
 
 ![Select Button](./docs/select_appt_button.png)
 
-You then select available appointments from a list.  Each appointment is shown in your local time (EST in example) as well as SERVER time (PST in this case)
+You then select available appointments from a list.  Each appointment is shown in the BROWSER's local time (EST in example) as well as SERVER time (PST in this case).
 
 ![Appointment List](./docs/appointment_list.png)
 
@@ -49,7 +49,7 @@ Your first time using this module, I recommend following these steps:
 ### 1. Create the Slot Database
 Prior to enabling this external module on a project, you need to create a Slot Database.  The Slot Database *DOES NOT* use the external module and it is not necessary to enable the external module on the Slot Database project.  The easiest way to create a compliant slot database is to use the provided [REDCap Slot DB Project XML File](./docs/TimezoneSchedulerSlotDbTemplate.REDCap.xml).  In the future, you can make copies of this database for other projects (or re-import from scratch).
 
-Goto REDCap, select `Create a new REDCap Project`, and then chose the `Upload a REDCap project XML file` and use the file from above.
+Go to REDCap, select `Create a new REDCap Project`, and then chose the `Upload a REDCap project XML file` and use the file from above.
 
 ![Adding a new Slot Database](./docs/new_slot_db_screenshot.png)
 
@@ -70,7 +70,7 @@ To illustrate (and test) that this module works with classical, longitudinal, an
 This example shows a variety of possible configurations but also requires a somewhat painstaking configuration in step 5.
 
 ### 4. Enable and Configure the Timezone Scheduler EM on the Example Project
-Enable the `Timezone Scheduler vx.y.z` em on your the example project created from the XML file above.  Goto the configuration page.
+Enable the `Timezone Scheduler vx.y.z` em on your the example project created from the XML file above.  Go to the configuration page.
 
 The complete example project contains 6 different timezone scheduler configurations.  This is way more than most projects will ever use.  So, to get started, let's break this down into a few steps.
 
@@ -199,7 +199,7 @@ In a project where you want to use this EM, you will have to enable the EM and t
 | Appointment Description Field | *(Optional)* The above appointment description can be saved into a field,  useful for piping into reminders with participants timezone. |
 | Slot Filter Field | *(Optional)* If set, only those slots that have a matching <code>slot filter value</code> will be available.  See example below |
 | Appointment Participant Text Date Field | *(Optional)* If specified, a simplified version of the selected date will be stored in the participants timezone, *e.g. Wed, Nov 5th, 2025 at 9:00 AM CST* |
-| Cancel Appointment URL | *(Optional)* This field will contain a URL that will goto a page to cancel the appointment.  This is useful if you wish to give participants the ability to cancel an appointment in an email notification. |
+| Cancel Appointment URL | *(Optional)* This field will contain a URL that will go to a page to cancel the appointment.  This is useful if you wish to give participants the ability to cancel an appointment in an email notification. |
 | Slot Record URL | *(Optional)* This field will contain a URL to the Slot DB Project for the reserved appointment.  Useful for an admin to be able to jump to the Slot database. |
 
 ### Using the Slot Filter Field
