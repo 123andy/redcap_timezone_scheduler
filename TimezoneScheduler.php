@@ -417,16 +417,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $result;
     }
 
-
-
     /**
-     * Get the appointment id value (aka slot_id) for the current record
+     * Get the current appointment id (aka slot_id) for the current record
+     * This is used to determine which slot is currently selected in the form
      * @param string $config_key The configuration key to use
      * @param int $record The record id
-     * @param int $event_id The event id
      * @param int $repeat_instance The repeat instance
      * @return mixed The slot_id or null if not found
-     * @throws TimezoneException
+     * @throws TimezoneException with any errors encountered
      */
     public function getCurrentAppointmentId($config_key, $record, $repeat_instance) {
         $this->emDebug("getCurrentAppointmentId called with config_key: $config_key, record: $record, repeat_instance: $repeat_instance");
@@ -588,7 +586,15 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Given an array of slot records, build the appointment options
+    /**
+     * Get the appointment options for the given slots and client timezone
+     * @param string $config_key The configuration key to use
+     * @param array $slots An associative array of slots from getSlots()
+     * @param string $client_timezone The client's timezone
+     * @param bool $filter_past_dates Whether to filter out past dates (default true)
+     * @return array An array of appointment options
+     * @throws TimezoneException with any errors encountered
+     */
     public function getAppointmentOptions($config_key, $slots, $client_timezone, $filter_past_dates = true) {
         $config = $this->get_tz_config($config_key);
         $appointments = [];
@@ -864,7 +870,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         $this->saveSlot($config_key, $slot);
     }
-
 
 
     /**
@@ -1284,11 +1289,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // public function saveAppointment($payload) {
-    //     $this->emDebug("saveAppointment called with payload: ", $payload);
-    //     // Here you would typically make an AJAX call to save the appointment
-    // }
-
     /**
      * Handle AJAX requests from the front end
      * @param string $action The action to perform
@@ -1586,6 +1586,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $result;
     }
 
+    // CURRENTLY NOT IN USE
     public function slotToCalendarConfig($slot) {
         // $this->emDebug("slotToCalendarConfig called with slot: ", $slot);
         if (empty($slot)) return null;
@@ -1618,16 +1619,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     // Inject HTML for timezone selector functionality
     public function injectHTML() {
         ?>
-            <!-- Button to trigger appointment modal -->
-            <!-- <button type="button" id="tz_selector_button" class="btn-primaryrc btn btn-xs float-right" data-toggle="modal" data-target="#tz_select_modal">
-                Edit Timezone
-            </button> -->
-            <!-- <button type="button" id="tz_selector_cancel" class="btn-danger btn btn-xs float-right">
-                Cancel
-            </button> -->
-
             <!-- Template container for appointment slot id field -->
             <div id="tz_select_container_template" class="tz_select_container" style="display:none;">
+
                 <div class="select-value" style="width:90%; display:none;">
                         <button type="button" data-action="select-appt" class="btn-primaryrc btn btn-sm" data-toggle="modal" data-target="#tz_select_appt_modal">
                             <i class="fas fa-calendar"></i><span class='button-text pl-2'>Select An Appointment</span>
