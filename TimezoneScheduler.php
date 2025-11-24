@@ -669,6 +669,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 'title' => $appt_participant_text_date,
                 'text' => $appt_description,
                 'participant_text_date' => $appt_participant_text_date,
+                'participant_date' => $client_dt->format('Y-m-d'),
                 'server_dt' => $server_dt->format('Y-m-d H:i')
                 // 'description' => $appt_description,
                 // 'description' => $client_dt->format('D, M jS \a\t g:ia T'),
@@ -678,6 +679,29 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         }
         return $appointments;
     }
+
+
+    /**
+     * From the given appointments, get unique participant dates with associated appointment ids
+     * @param array $appointments An array of appointments from getAppointmentOptions()
+     * @return array An associative array of unique dates with arrays of appointment ids
+     */
+    public function getUniqueAppointmentParticipantDates($appointments) {
+        $unique_dates = [];
+        foreach ($appointments as $appt) {
+            $date = $appt['participant_date'];
+            if (empty($date)) {
+                continue;
+            }
+            $id = $appt['id'];
+            if (!isset($unique_dates[$date])) {
+                $unique_dates[$date] = [];
+            }
+            $unique_dates[$date][] = $id;
+        }
+        return $unique_dates;
+    }
+
 
 
     /**
@@ -1372,7 +1396,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         "timezone" => $timezone,
                         "message" => $message,
                         "count" => $count,
-                        "data" => $appointment_options
+                        "data" => $appointment_options,
+                        "dates" => $this->getUniqueAppointmentParticipantDates($appointment_options)
                     ];
                     break;
                 case "addToCalendar":
@@ -1652,10 +1677,23 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                             <h5 class="modal-title">Select Appointment</h5>
                         </div>
                         <div class="modal-body" style="width:100%;">
-                            <p>Select an appointment from the list below:</p>
+                            <p>Select an available appointment from the list below:</p>
                             <select id="tz_select_appt" class="form-control">
                                 <option value="">Loading...</option>
                             </select>
+                            <div id="tz_calendar_filter" class="pt-2">
+                                <hr/>
+                                <div>
+                                    <span id="tz_calendar_filter_status">Use the calendar to filter the dropdown by date:</span>
+                                    <button id="tz_clear_calendar_filter_button" type="button" class="btn btn-xs btn-success ms-2 hidden">
+                                        <i class="fas fa-times"></i> Reset Date Filter
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-center">
+                                    <!-- Inline bootstrap calendar to filter appointments, always visible -->
+                                    <div id="calendar" class="datepicker"></div>
+                                </div>
+                            </div>
                             <div>
                                 <br/>
                                 <span id="tz_display"></span>.
@@ -1760,6 +1798,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 .selected-appointment {
                     background-color: #fff2b0;
                 }
+
+                .datepicker table tr td.disabled, .datepicker table tr td.disabled:hover {
+                    background-color: #ededed !important;
+                    color: #bbbbbb !important;
+                    cursor: not-allowed;
+                    opacity: 1;
+                }
+
 
             </style>
         <?php
