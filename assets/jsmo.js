@@ -575,6 +575,7 @@
 
         // Filter appointments in the select2 dropdown based on selected calendar dates
         filterAppointmentsByDates: function(field, selectedDates) {
+            module.debug("Selected Dates for filtering: ", selectedDates);
             const $select = $('#tz_select_appt');
             const allOptions = module.data.config[field]['appointment_options'];
             const allDates = module.data.config[field]['appointment_dates'];
@@ -625,18 +626,20 @@
 
             // Determine Filter Text
             let cfs = '';
+            const optionCount = Options.length-1; // Exclude placeholder
+
             if (selectedDates.length === 0) {
-                cfs = 'Showing <b>All ' + Options.length + '</b> available slots spanning ' + Object.keys(allDates).length
+                cfs = 'Showing <b>All ' + optionCount + '</b> available slots spanning ' + Object.keys(allDates).length
                 + ' different dates.<div class="pt-1"><i>Use the calendar above to filter by dates</i>';
                 $('#tz_clear_calendar_filter_button').hide();
             } else {
-                cfs = 'Showing <b>' + Options.length + ' of ' + allOptions.length + '</b> available slots on the ' +
+                cfs = 'Showing <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> available slots on the ' +
                     selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
                 $('#tz_clear_calendar_filter_button').show();
             }
             $('#tz_calendar_filter_status').html(cfs);
 
-            module.debug("Showing ", Options.length, " of ", allOptions.length, " options");
+            module.debug("Showing ", optionCount, " of ", (allOptions.length - 1), " options");
         },
 
 
@@ -885,7 +888,7 @@
 
             // Clear the calendar selection
             $('#calendar').bootstrapDatepicker('clearDates');
-            $('#calendar').bootstrapDatepicker('setDate', new Date());
+            $('#calendar').bootstrapDatepicker('defaultViewDate', new Date());
 
             // Update the filter status display
             // $('#tz_calendar_filter_status').html('Showing <b>All Appointments</b>.  <i>Optionally use the calendar to filter</i>');
