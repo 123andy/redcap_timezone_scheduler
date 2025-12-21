@@ -57,7 +57,14 @@
                 "icon": "fas fa-cog",
                 "url": "pages/admin.php",
                 "show-header-and-footer": true
+            },
+            {
+                "name": "Timezone Calendar",
+                "icon": "fas fa-calendar-alt",
+                "url": "pages/calendar.php",
+                "show-header-and-footer": true
             }
+
         ],
         "control-center": [
 
@@ -65,7 +72,8 @@
     },
 
     "no-auth-pages": [
-        "pages/cancel"
+        "pages/cancel",
+        "pages/calendar"
     ],
 
     "project-settings": [

@@ -261,10 +261,6 @@
                 module.refreshAppointmentSelector();
             });
 
-            // Add bootstrap calendar css
-            $('head').append('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker3.min.css"></link>');
-            $('head').append('<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>');
-
             // Handle calendar date filter clear button
             $('#tz_clear_calendar_filter_button').on('click', function() {
                 module.debug("Clear Calendar Filter Button Clicked");
@@ -493,7 +489,9 @@
             };
 
             // Update timezone display
-            $('#tz_display').html('Displaying appointments in the <b>' + timezone + '</b> timezone');
+            $('#tz_display').html(
+                'Displaying appointments in the <b>' + timezone + '</b> timezone'
+            );
 
             // Default to show the calendar (unless a value is selected)
             $('#tz_calendar_filter').show();
@@ -507,7 +505,8 @@
                 module.data.config[field]['appointment_dates'] = response.dates; // Save unique dates for calendar rendering
                 module.debug("Update calendar!");
 
-                $('#calendar').datepicker({
+                // Add Calendar
+                $('#calendar').bootstrapDatepicker({
                     format: 'yyyy-mm-dd',
                     todayHighlight: true,
                     autoclose: false,      // click does not hide, but inline already keeps it open
@@ -531,31 +530,20 @@
                     }
                 }).on('changeDate', function (e) {
                     // Get all selected dates (supports multidate selection)
-                    const selectedDates = $(this).datepicker('getDates').map(date => {
+                    const selectedDates = $(this).bootstrapDatepicker('getDates').map(date => {
                         return date.getFullYear() + '-' +
                                String(date.getMonth() + 1).padStart(2, '0') + '-' +
                                String(date.getDate()).padStart(2, '0');
                     });
                     module.debug("Selected Dates: ", selectedDates);
 
-                    if (selectedDates.length === 0) {
-                        cfs = 'Showing <b>All Appointments</b>.  <i>Optionally use the calendar to filter by date(s)</i>';
-                        $('#tz_clear_calendar_filter_button').hide();
-                    } else if (selectedDates.length === 1) {
-                        cfs = 'Only showing Appointments on <b>' + selectedDates[0] + '</b>';
-                        $('#tz_clear_calendar_filter_button').show();
-                    } else {
-                        cfs = 'Only showing Appointments on the <b>' + selectedDates.length + ' Selected Dates</b>';
-                        $('#tz_clear_calendar_filter_button').show();
-                    }
-                    $('#tz_calendar_filter_status').html(cfs);
-
                     // Filter appointments based on selected dates
                     module.filterAppointmentsByDates(field, selectedDates);
                 });
 
                 // Initialize with all appointments showing (no date filter)
-                module.filterAppointmentsByDates(field, []);
+                module.clearCalendarFilter();
+//                module.filterAppointmentsByDates(field, []);
 
                 $select.on('change', function() {
                     // We are going to ignore change event, as all that matters is a 'SAVE' event
@@ -571,6 +559,13 @@
                         $('#tz_calendar_filter').show();
                     }
                 });
+
+                $select.on('select2:open', function () {
+                    console.log(this);
+                    $('.select2-search__field').attr('placeholder', 'Select an appointment or type here to filter by keyword…');
+                });
+
+
             }).catch(function (err) {
                 module.debug("Error fetching appointments: ", err);
                 alert(err);
@@ -582,6 +577,7 @@
         filterAppointmentsByDates: function(field, selectedDates) {
             const $select = $('#tz_select_appt');
             const allOptions = module.data.config[field]['appointment_options'];
+            const allDates = module.data.config[field]['appointment_dates'];
             var Options = [];
 
             if (!allOptions || selectedDates.length === 0) {
@@ -609,7 +605,13 @@
                 dropdownParent: $('#tz_select_appt_modal'),
                 data: Options,
                 templateSelection: function (data) {
-                    if (!data.id) return data.text;
+                    if (!data.id) {
+                        // return data.text
+                        // Render a button-like placeholder
+                        return $('<div class="d-flex justify-content-center">' +
+                            '<span class="btn btn-xs btn-outline-primary">Show Apppointments</span>' +
+                            '</div>');
+                    };
                     return $('<div>').addClass('tz-selection').html(data.text.replace(/\n/g, '<br/>'));
                 },
                 templateResult: function (data) {
@@ -617,11 +619,24 @@
                     var description = data.text.replace(/\n/g, '<br/>');
                     return $('<div>' + description + '</div>');
                 },
-                placeholder: "Select an appointment...",
+                placeholder: "Click to choose an available appointment",
                 allowClear: true
             });
 
-            module.debug("Shopwing ", Options.length, " of ", allOptions.length, " options");
+            // Determine Filter Text
+            let cfs = '';
+            if (selectedDates.length === 0) {
+                cfs = 'Showing <b>All ' + Options.length + '</b> available slots spanning ' + Object.keys(allDates).length
+                + ' different dates.<div class="pt-1"><i>Use the calendar above to filter by dates</i>';
+                $('#tz_clear_calendar_filter_button').hide();
+            } else {
+                cfs = 'Showing <b>' + Options.length + ' of ' + allOptions.length + '</b> available slots on the ' +
+                    selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
+                $('#tz_clear_calendar_filter_button').show();
+            }
+            $('#tz_calendar_filter_status').html(cfs);
+
+            module.debug("Showing ", Options.length, " of ", allOptions.length, " options");
         },
 
 
@@ -869,10 +884,11 @@
             module.debug("Clearing calendar filter");
 
             // Clear the calendar selection
-            $('#calendar').datepicker('clearDates');
+            $('#calendar').bootstrapDatepicker('clearDates');
+            $('#calendar').bootstrapDatepicker('setDate', new Date());
 
             // Update the filter status display
-            $('#tz_calendar_filter_status').html('Showing <b>All Appointments</b>.  <i>Optionally use the calendar to filter</i>');
+            // $('#tz_calendar_filter_status').html('Showing <b>All Appointments</b>.  <i>Optionally use the calendar to filter</i>');
 
             // Hide the clear filter button
             $('#tz_clear_calendar_filter_button').hide();
