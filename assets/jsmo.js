@@ -490,7 +490,7 @@
 
             // Update timezone display
             $('#tz_display').html(
-                'Displaying appointments in the <b>' + timezone + '</b> timezone'
+                'Dates shown in the <b>' + timezone + '</b> timezone'
             );
 
             // Default to show the calendar (unless a value is selected)
@@ -563,8 +563,12 @@
                 $select.on('select2:open', function () {
                     console.log(this);
                     $('.select2-search__field').attr('placeholder', 'Select an appointment or type here to filter by keyword…');
+                    $('.tz_toggle_appointments').text('Hide Apppointment List');
                 });
 
+                $select.on('select2:close', function () {
+                    $('.tz_toggle_appointments').text('Click to choose an available appointment');
+                });
 
             }).catch(function (err) {
                 module.debug("Error fetching appointments: ", err);
@@ -610,7 +614,7 @@
                         // return data.text
                         // Render a button-like placeholder
                         return $('<div class="d-flex justify-content-center">' +
-                            '<span class="btn btn-xs btn-outline-primary">Show Apppointments</span>' +
+                            '<span class="btn btn-sm btn-primary tz_toggle_appointments">Click to choose an available appointment</span>' +
                             '</div>');
                     };
                     return $('<div>').addClass('tz-selection').html(data.text.replace(/\n/g, '<br/>'));
@@ -624,17 +628,23 @@
                 allowClear: true
             });
 
+            // Open the dropdown to show updated options
+            // $select.select2('open');
+            // $('.tz_toggle_appointments').text('Hide Apppointments');
+
             // Determine Filter Text
             let cfs = '';
             const optionCount = Options.length-1; // Exclude placeholder
 
             if (selectedDates.length === 0) {
-                cfs = 'Showing <b>All ' + optionCount + '</b> available slots spanning ' + Object.keys(allDates).length
-                + ' different dates.<div class="pt-1"><i>Use the calendar above to filter by dates</i>';
+                cfs = '';
+                // cfs = 'Showing <b>All ' + optionCount + '</b> available slots spanning ' + Object.keys(allDates).length
+                // + ' different dates.'; //<div class="pt-1"><i>Use the calendar above to filter by dates</i>';
                 $('#tz_clear_calendar_filter_button').hide();
             } else {
-                cfs = 'Showing <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> available slots on the ' +
-                    selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
+                // cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on the ' +
+                //     selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
+                cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on   selected day' + (selectedDates.length > 1 ? 's' : '');
                 $('#tz_clear_calendar_filter_button').show();
             }
             $('#tz_calendar_filter_status').html(cfs);

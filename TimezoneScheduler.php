@@ -1884,23 +1884,23 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                                     <div id="calendar" class="datepicker"></div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-center">
-                                <select id="tz_select_appt" class="form-control">
-                                    <option value="">Loading...</option>
-                                </select>
+                            <div class='d-flex justify-content-between align-items-center'>
+                                <span id="tz_display"></span>.
+                                <button id='tz_select_edit_timezone_button' type="button" class="btn-success btn btn-xs" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
+                                    <nobr><i class="fas fa-edit"></i> Change Timezone</nobr>
+                                </button>
                             </div>
                             <!-- <p>Select an available appointment from the list below:</p> -->
                             <div class="pt-2 d-flex justify-content-between align-items-center">
                                 <span id="tz_calendar_filter_status"></span>
                                 <button id="tz_clear_calendar_filter_button" type="button" class="btn btn-xs btn-secondary ms-2 hidden">
-                                    <i class="fas fa-times"></i> Clear Date Filter
+                                    <nobr><i class="fas fa-times"></i> Clear Date Filter</nobr>
                                 </button>
                             </div>
-                            <div class='pt-2 d-flex justify-content-between align-items-center'>
-                                <span id="tz_display"></span>.
-                                <button id='tz_select_edit_timezone_button' type="button" class="btn-success btn btn-xs" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
-                                    <nobr><i class="fas fa-edit"></i> Change Timezone</nobr>
-                                </button>
+                            <div class="pt-2 d-flex justify-content-center">
+                                <select id="tz_select_appt" class="form-control">
+                                    <option value="">Loading...</option>
+                                </select>
                             </div>
                         </div>
                         <div class="modal-footer">
