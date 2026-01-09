@@ -644,7 +644,8 @@
             } else {
                 // cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on the ' +
                 //     selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
-                cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on   selected day' + (selectedDates.length > 1 ? 's' : '');
+                // cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on   selected day' + (selectedDates.length > 1 ? 's' : '');
+                cfs = 'Filtering for <b>' + selectedDates.length + '</b> selected date' + (selectedDates.length > 1 ? 's' : '') + '. ';
                 $('#tz_clear_calendar_filter_button').show();
             }
             $('#tz_calendar_filter_status').html(cfs);
