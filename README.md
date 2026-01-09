@@ -56,12 +56,13 @@ Go to REDCap, select `Create a new REDCap Project`, and then chose the `Upload a
 ### 2. Populate the Slot Database
 Once you have your new slot database, use the [Import Template](./docs/TimezoneSchedulerImportTemplate.csv) to create an then import a number of available slots.
 
->[!NOTE] AI Fun for Generating Test Events
+> [!NOTE]
+> **AI Fun for Generating Test Events**
 > Have [fun with AI](https://www.perplexity.ai/search/based-on-the-template-below-ge-a3axFQDEQaWkRBSuN.PuUQ#0) to generate some test events.
 > This is a set of [100 future events](./docs/ExampleEventsFun.csv) you can also use.
 
 >[!NOTE] Use Force Auto Numbering On Import!
-> It is important to never reuse a value within the `slot_id` field; 
+> It is important to never reuse a value within the `slot_id` field;
 > in other words, each `slot_id` value must be unique.
 > For this reason, I always recommend importing with the `Force Auto Number` option.  See the image below:
 > ![Forcing AutoNumbering](./docs/import_screenshot.png)
@@ -89,7 +90,7 @@ For `Example A` we will first program ONLY the two required fields:
       - Slot DB => The PID for your Slot Database you created and populated above
       - Appointment Field => `appt_slot_1`
       - Appointment Field Event => `Arm_1_Event_1`
-      >[!NOTE]
+      > [!NOTE]
       > Save and let's test with only two configuration options set.
 
       > Try creating a record.  You might get a warning about the record needing to 'exist' first.  Do 'save and continue' and this should go away.  See if you can select an appointment.  Success? If so, return to the configuration page and add more options.
@@ -104,10 +105,11 @@ For `Example A` we will first program ONLY the two required fields:
       - Appointment Participant Text Date Field => `appt_part_text_date_1`
       - Cancel Appointment URL => `appt_cancel_url_1`
       - Slot Record URL => `appt_slot_url_1`
-      >[!NOTE] Whew!
-      > That was the full set of options.  The others are much simpler, but now you have an idea of what's required (only two config options) and what all the other stuff does.
+      > [!NOTE]
+      > Whew! That was the full set of options.  The others are much simpler, but now you have an idea of what's required (only two config options) and what all the other stuff does.
    2. Example B Appt 1
-      >[!NOTE] We are adding a second option.  To do this with the External Module Configuration tool, you click on the `+` button on the right of the first field in option 1 to create another configuration instance.  Play around with the `+` and `-` buttons a few times so you understand how they work.  Since we have a 6 total configurations in this text project, you will eventually need to press the `+` button **five** more times (not necessarily all at once, though).
+      > [!NOTE]
+      > We are adding a second option.  To do this with the External Module Configuration tool, you click on the `+` button on the right of the first field in option 1 to create another configuration instance.  Play around with the `+` and `-` buttons a few times so you understand how they work.  Since we have a 6 total configurations in this text project, you will eventually need to press the `+` button **five** more times (not necessarily all at once, though).
       - Slot DB => same as before
       - Appointment Field => `ex_b_appt_1`
       - Event => `Arm_1_Event_1`
@@ -127,7 +129,8 @@ For `Example A` we will first program ONLY the two required fields:
       - Event => Event 1
       - Appointment Server DateTime Field => `ex_c_appt_dt`
    5. Example C (second event)
-      >[!NOTE] If you have a form (like Example C) that is enabled on more than one event, you need to create a configuration for each event.  So, this is the configuration for field `ex_c_appt` but on the SECOND event in the project.
+      > [!NOTE]
+      > If you have a form (like Example C) that is enabled on more than one event, you need to create a configuration for each event.  So, this is the configuration for field `ex_c_appt` but on the SECOND event in the project.
       - Slot DB => same as before
       - Appointment Field => `ex_c_appt`
       - Event => **Event 2**
@@ -275,7 +278,8 @@ There are many actions you can take from the summary tables:
 - `Reset Appt and Slot` clears both -- esentially undoing the appointment.  This is what you want to use in most cases as it should not orphan any entires from the Slot or Appt projects.
 - `Cancel Slot` is a special action that markes an unused slot as `reserverd` and puts a comment into the `source-project-title` field of who cancelled it.  This is useful if you need to remove a bunch of slots from the dropdowns quickly, say if a meeting comes up or you have vacation.  You can simply mark them as cancelled and any new participats will not be able to book them.
 
->[!NOTE] Cancelling Appointments
+> [!NOTE]
+> **Cancelling Appointments**
 > Please note that the participant is not currently notified if you cancel an appointment.  Perhaps this is a feature request.  If you wish to cancel an appointment, you should notify the participant through some other means.
 
 ## Future Ideas:

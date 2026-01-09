@@ -6,6 +6,9 @@ use DateTimeZone;
 use DateInterval;
 use Exception;
 
+use \Sabre\VObject\Component\VCalendar;
+use \Sabre\VObject;
+
 require_once "classes/TimezoneException.php";
 require_once "emLoggerTrait.php";
 
@@ -417,16 +420,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $result;
     }
 
-
-
     /**
-     * Get the appointment id value (aka slot_id) for the current record
+     * Get the current appointment id (aka slot_id) for the current record
+     * This is used to determine which slot is currently selected in the form
      * @param string $config_key The configuration key to use
      * @param int $record The record id
-     * @param int $event_id The event id
      * @param int $repeat_instance The repeat instance
      * @return mixed The slot_id or null if not found
-     * @throws TimezoneException
+     * @throws TimezoneException with any errors encountered
      */
     public function getCurrentAppointmentId($config_key, $record, $repeat_instance) {
         $this->emDebug("getCurrentAppointmentId called with config_key: $config_key, record: $record, repeat_instance: $repeat_instance");
@@ -588,7 +589,15 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // Given an array of slot records, build the appointment options
+    /**
+     * Get the appointment options for the given slots and client timezone
+     * @param string $config_key The configuration key to use
+     * @param array $slots An associative array of slots from getSlots()
+     * @param string $client_timezone The client's timezone
+     * @param bool $filter_past_dates Whether to filter out past dates (default true)
+     * @return array An array of appointment options
+     * @throws TimezoneException with any errors encountered
+     */
     public function getAppointmentOptions($config_key, $slots, $client_timezone, $filter_past_dates = true) {
         $config = $this->get_tz_config($config_key);
         $appointments = [];
@@ -663,6 +672,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 'title' => $appt_participant_text_date,
                 'text' => $appt_description,
                 'participant_text_date' => $appt_participant_text_date,
+                'participant_date' => $client_dt->format('Y-m-d'),
                 'server_dt' => $server_dt->format('Y-m-d H:i')
                 // 'description' => $appt_description,
                 // 'description' => $client_dt->format('D, M jS \a\t g:ia T'),
@@ -672,6 +682,29 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         }
         return $appointments;
     }
+
+
+    /**
+     * From the given appointments, get unique participant dates with associated appointment ids
+     * @param array $appointments An array of appointments from getAppointmentOptions()
+     * @return array An associative array of unique dates with arrays of appointment ids
+     */
+    public function getUniqueAppointmentParticipantDates($appointments) {
+        $unique_dates = [];
+        foreach ($appointments as $appt) {
+            $date = $appt['participant_date'];
+            if (empty($date)) {
+                continue;
+            }
+            $id = $appt['id'];
+            if (!isset($unique_dates[$date])) {
+                $unique_dates[$date] = [];
+            }
+            $unique_dates[$date][] = $id;
+        }
+        return $unique_dates;
+    }
+
 
 
     /**
@@ -864,7 +897,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
         $this->saveSlot($config_key, $slot);
     }
-
 
 
     /**
@@ -1284,10 +1316,201 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
-    // public function saveAppointment($payload) {
-    //     $this->emDebug("saveAppointment called with payload: ", $payload);
-    //     // Here you would typically make an AJAX call to save the appointment
-    // }
+    public function serveICalFeed($feed) {
+        $appointments = $this->getIcalFeed();
+        // Serve iCal feed
+        // header('Content-Type: text/calendar; charset=utf-8');
+        // header('Content-Disposition: attachment; filename="appointment.ics"');
+        echo "<pre>";
+        echo "BEGIN:VCALENDAR\r\n";
+        echo "VERSION:2.0\r\n";
+        echo "PRODID:-//Timezone Scheduler Module//EN\r\n";
+        echo "CALSCALE:GREGORIAN\r\n";
+        echo "METHOD:PUBLISH\r\n";
+
+
+        echo $feed;
+        exit;
+    }
+
+
+    public function getIcalFeed() {
+        $this->load_tz_configs();
+        $now_dt = new DateTime("now");
+        $results = [];
+        $appt_map = [];
+        foreach($this->config as $config_key => $config) {
+            // Get All Appointments for this config
+            $appt_field = $config['appt-field'];
+            $appts = $this->getRecords($config_key);
+            $this->emDebug("Found " . count($appts) . " appointments for config_key $config_key");
+            foreach ($appts as $appt) {
+                $appt_event_name = $appt['redcap_event_name'] ?? null;
+                $appt_instance = $appt['redcap_repeat_instance'] ?? null;
+
+                $appt_record = $appt[REDCap::getRecordIdField()];
+                $appt_event_id = REDCap::getEventIdFromUniqueEvent($appt_event_name);
+                $appt_repeat_instance = $appt_instance ? $appt_instance : 1;
+                $appt_slot_id = $appt[$appt_field];
+
+                if (!isset($appt_map[$appt_slot_id])) {
+                    $appt_map[$appt_slot_id] = [];
+                }
+
+                $appt_map[$appt_slot_id][] = [
+                    'appt_project_id' => $this->getProjectId(),
+                    'appt_field' => $appt_field,
+                    'appt_record' => $appt_record,
+                    'appt_event_id' => $appt_event_id,
+                    'appt_repeat_instance' => $appt_repeat_instance,
+                    'config_key' => $config_key
+                ];
+            }
+        }
+        // $this->emDebug("Appointment Maps for all config_keys:", $appt_map);
+
+        foreach($this->config as $config_key => $config) {
+            // Get All Slots for this config
+            $slots = $this->getSlots($config_key, false);
+            $this->emDebug("Verifying " . count($slots) . " slots for config_key $config_key");
+            $slot_project_id = $config['slot-project-id'];
+
+            // Get all the slots for this config
+            foreach ($slots as $slot_id => $slot) {
+                if (isset($results[$slot_id]) && $results[$slot_id]['slot_project_id'] === $slot_project_id) {
+                    $results[$slot_id]['config_keys'][] = $config_key;
+                    continue;
+                }
+                $errors = [];
+                $actions = [];
+
+                $status = "Available";
+                $reserved = $slot['reserved_ts'] ?? null;
+                $slot_ts = $slot['date'] . " " . $slot['time'];
+                $slot_dt = new DateTime($slot_ts);
+                $is_past = $now_dt > $slot_dt;
+                $record = $slot['source_record_id'] ?? null;
+
+                // Go through logic to determine status
+                if (empty($record)) {
+                    if ($reserved) {
+                        // Only cancelled records are reserved without a record
+                        if ($is_past) {
+                            $status = "Cancelled (past)";
+                            $note = $slot['source_project_title'] ?? '';
+                        } else {
+                            // Previously cancelled
+                            $status = "Cancelled";
+                            $note = $slot['source_project_title'] ?? '';
+                            $actions[] = [
+                                "label" => "UnCancel (make available)",
+                                "action" => "resetSlot",
+                                "params" => [
+                                    "config_key" => $config_key,
+                                    "slot_id" => $slot_id
+                                ]
+                            ];
+                        }
+                    } else {
+                        // Available records are unreserved without a record
+                        $status = "Available";
+                        $actions[] = [
+                            "label" => "Cancel Slot",
+                            "action" => "cancelSlot",
+                            "params" => [
+                                "config_key" => $config_key,
+                                "slot_id" => $slot_id
+                            ]
+                        ];
+                    }
+                } else {
+                    // Has a record
+                    if ($reserved) {
+                        if ($is_past) {
+                            $status = "Reserved (past)";
+                        } else {
+                            $status = "Reserved";
+                            $actions[] = [
+                                "label" => "Reset Appt and Slot",
+                                "action" => "resetSlotAndAppointment",
+                                "params" => [
+                                    "config_key" => $config_key,
+                                    "record" => $record,
+                                    "instance" => $slot['source_instance_id'],
+                                    "slot_id" => $slot['slot_id']
+                                ]
+                            ];
+                        }
+
+                        // See if it points to an apptointment, if so, verify the appointment also points back to this slot
+                        $source_field = $slot['source_field'] ?? null;
+                        $source_project_id = $slot['source_project_id'] ?? null;
+                        $source_record_id = $slot['source_record_id'] ?? null;
+                        $source_event_id = $slot['source_event_id'] ?? null;
+                        $source_instance_id = $slot['source_instance_id'] ?? null;
+
+                        if (empty($appt_map[$slot_id])) {
+                            $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
+                        } else {
+                            if (count($appt_map[$slot_id]) > 1) {
+                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id] . "</pre>");
+                            } else {
+                                $appt_info = $appt_map[$slot_id][0];
+                                if ($appt_info['appt_record'] != $source_record_id
+                                    || $appt_info['appt_event_id'] != $source_event_id
+                                    || $appt_info['appt_repeat_instance'] != $source_instance_id
+                                ) {
+                                    $errors[] = "Slot $slot_id does not match the appointment record that claims it: project $source_project_id, record $source_record_id, field $source_field - please investigate.";
+                                }
+                            }
+                        }
+                    } else {
+                        // Has record but isn't reserved -- this shouldn't happen
+                        $errors[] = "Slot $slot_id is assigned to record $record but is not marked as reserved.";
+                        $status = "Error";
+                        $actions[] = [
+                            "label" => "Reset Slot",
+                            "action" => "resetSlot",
+                            "params" => [
+                                "config_key" => $config_key,
+                                "slot_id" => $slot_id
+                            ]
+                        ];
+                        $actions[] = [
+                            "label" => "Cancel Slot",
+                            "action" => "cancelSlot",
+                            "params" => [
+                                "config_key" => $config_key,
+                                "slot_id" => $slot_id
+                            ]
+                        ];
+                    }
+                }
+
+                $results[$slot_id] = [
+                    'slot_project_id' => $slot_project_id,
+                    'config_keys' => [$config_key],
+                    'slot_id' => $slot_id,
+                    'slot_url' => APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION . "/DataEntry/index.php?pid=" . $config['slot-project-id'] . "&id=$slot_id&page=slots",
+                    'date' => $slot['date'],
+                    'project_filter' => $slot['project_filter'] ?? '',
+                    'slot_filter' => $slot['slot_filter'] ?? '',
+                    'time' => $slot['time'],
+                    'is_past' => $is_past,
+                    'note' => $note ?? '',
+                    'status' => $status,
+                    'errors' => implode('|', $errors),
+                    'actions' => $actions,
+                    'source_record_url' => $slot['source_record_url'] ?? '',
+                    'source_record_id' => $record,
+                    'title' => $slot['title'] ?? ''
+                ];
+            }
+        }
+        return $results;
+    }
+
+
 
     /**
      * Handle AJAX requests from the front end
@@ -1372,7 +1595,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         "timezone" => $timezone,
                         "message" => $message,
                         "count" => $count,
-                        "data" => $appointment_options
+                        "data" => $appointment_options,
+                        "dates" => $this->getUniqueAppointmentParticipantDates($appointment_options)
                     ];
                     break;
                 case "addToCalendar":
@@ -1586,6 +1810,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         return $result;
     }
 
+    // CURRENTLY NOT IN USE
     public function slotToCalendarConfig($slot) {
         // $this->emDebug("slotToCalendarConfig called with slot: ", $slot);
         if (empty($slot)) return null;
@@ -1618,16 +1843,10 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     // Inject HTML for timezone selector functionality
     public function injectHTML() {
         ?>
-            <!-- Button to trigger appointment modal -->
-            <!-- <button type="button" id="tz_selector_button" class="btn-primaryrc btn btn-xs float-right" data-toggle="modal" data-target="#tz_select_modal">
-                Edit Timezone
-            </button> -->
-            <!-- <button type="button" id="tz_selector_cancel" class="btn-danger btn btn-xs float-right">
-                Cancel
-            </button> -->
 
             <!-- Template container for appointment slot id field -->
             <div id="tz_select_container_template" class="tz_select_container" style="display:none;">
+
                 <div class="select-value" style="width:90%; display:none;">
                         <button type="button" data-action="select-appt" class="btn-primaryrc btn btn-sm" data-toggle="modal" data-target="#tz_select_appt_modal">
                             <i class="fas fa-calendar"></i><span class='button-text pl-2'>Select An Appointment</span>
@@ -1655,22 +1874,36 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">Select Appointment</h5>
+                            <h5 class="modal-title">Select an Appointment</h5>
                         </div>
                         <div class="modal-body" style="width:100%;">
-                            <p>Select an appointment from the list below:</p>
-                            <select id="tz_select_appt" class="form-control">
-                                <option value="">Loading...</option>
-                            </select>
-                            <div>
-                                <br/>
+
+                            <div id="tz_calendar_filter" class="pb-2">
+                                <div class="d-flex justify-content-center">
+                                    <!-- Inline bootstrap calendar to filter appointments, always visible -->
+                                    <div id="calendar" class="datepicker"></div>
+                                </div>
+                            </div>
+                            <div class='d-flex justify-content-between align-items-center'>
                                 <span id="tz_display"></span>.
+                                <button id='tz_select_edit_timezone_button' type="button" class="btn-success btn btn-xs" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
+                                    <nobr><i class="fas fa-edit"></i> Change Timezone</nobr>
+                                </button>
+                            </div>
+                            <!-- <p>Select an available appointment from the list below:</p> -->
+                            <div class="pt-2 d-flex justify-content-between align-items-center">
+                                <span id="tz_calendar_filter_status"></span>
+                                <button id="tz_clear_calendar_filter_button" type="button" class="btn btn-xs btn-secondary ms-2 hidden">
+                                    <nobr><i class="fas fa-times"></i> Clear Date Filter</nobr>
+                                </button>
+                            </div>
+                            <div class="pt-2 d-flex justify-content-center">
+                                <select id="tz_select_appt" class="form-control">
+                                    <option value="">Loading...</option>
+                                </select>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button id='tz_select_edit_timezone_button' type="button" class="btn-success btn btn-sm me-auto" data-toggle="modal" data-target="#tz_select_timezone_modal" data-dismiss="modal">
-                                <i class="fas fa-edit"></i> Change Timezone
-                            </button>
                             <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
                             <button id="tz_select_save_button" type="button" class="btn btn-primaryrc btn-sm">Save</button>
                         </div>
@@ -1690,8 +1923,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                             <select id="tz_select_timezone" class="form-control"></select>
                         </div>
                         <div class="modal-footer">
-                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_clear_timezone_button" type="button" class="btn btn-success btn-sm me-auto"><i class="fas fa-globe"></i> Auto Detect Timezone</button>
-                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_save_timezone_button" type="button" class="btn btn-primary btn-sm">Set Timezone</button>
+                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_clear_timezone_button" type="button" class="btn btn-primary btn-sm me-auto"><i class="fas fa-globe"></i> Auto Detect Timezone</button>
+                            <button data-target="#tz_select_appt_modal" data-toggle="modal" data-dismiss="modal" id="tz_select_save_timezone_button" type="button" class="btn btn-primary btn-sm">Save Timezone</button>
                         </div>
                     </div>
                 </div>
@@ -1741,6 +1974,15 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     color: #e74c3c;
                 }
 
+                /** remove border from select2 in modal */
+                #tz_select_appt_modal .select2-container--default .select2-selection--single {
+                    border: none;
+                }
+
+                #tz_select_appt_modal .select2-results {
+                    border-bottom: 2px solid var(--bs-border-color) !important;
+                }
+
                 /** add a line border between dates in the select2 dropdown */
                 li.select2-results__option {
                     border-top: 1px solid #eee;
@@ -1766,6 +2008,14 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 .selected-appointment {
                     background-color: #fff2b0;
                 }
+
+                .datepicker table tr td.disabled, .datepicker table tr td.disabled:hover {
+                    background-color: #ededed !important;
+                    color: #bbbbbb !important;
+                    cursor: not-allowed;
+                    opacity: 1;
+                }
+
 
             </style>
         <?php
@@ -1912,6 +2162,8 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $spacer=";\n".str_repeat(" ",16);
         ?>
 
+        <link rel="stylesheet" href="<?=$this->getUrl('assets/bootstrap-datepicker.min.css',true)?>"></link>
+        <script src="<?=$this->getUrl("assets/bootstrap-datepicker.min.js",true)?>"></script>
 
         <script src="<?=$this->getUrl("assets/jsmo.js",true)?>"></script>
         <script>

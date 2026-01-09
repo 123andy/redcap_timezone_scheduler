@@ -65,7 +65,8 @@
     },
 
     "no-auth-pages": [
-        "pages/cancel"
+        "pages/cancel",
+        "pages/calendar"
     ],
 
     "project-settings": [
@@ -189,7 +190,6 @@
     ],
 
     "crons": [
-
     ],
 
     "compatibility": {

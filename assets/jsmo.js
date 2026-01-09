@@ -261,8 +261,12 @@
                 module.refreshAppointmentSelector();
             });
 
+            // Handle calendar date filter clear button
+            $('#tz_clear_calendar_filter_button').on('click', function() {
+                module.debug("Clear Calendar Filter Button Clicked");
+                module.clearCalendarFilter();
+            });
         },
-
 
         // Focus on the next field in the form - currently not using it
         focusOnNextField: function(field) {
@@ -485,49 +489,168 @@
             };
 
             // Update timezone display
-            $('#tz_display').html('Displaying appointments in the <b>' + timezone + '</b>    timezone');
+            $('#tz_display').html(
+                'Dates shown in the <b>' + timezone + '</b> timezone'
+            );
+
+            // Default to show the calendar (unless a value is selected)
+            $('#tz_calendar_filter').show();
 
             module.ajax('getAppointmentOptions', $payload).then(function (response) {
                 module.debug('getAppointmentOptions response: ', response);
                 // If the response is an object, not an array, you can convert it to an array using the object map like below:
                 // data = Object.entries(response.data).map( ([k,v]) => ({id: v.id, text: v.text }) );
                 data = response.data;
-                $select.empty().select2({
-                    width: '100%',
-                    dropdownParent: $('#tz_select_appt_modal'), // Required for bootstrap modals
-                    data: data,
-                    templateSelection: function (data) {
-                        // This allows you to add HTML to the select data 'text' attribute without affecting its value in the actual input box
-                        // module.debug(data);
-                        if (!data.id) {
-                            return data.text;
-                        }
-                        return $('<div>').addClass('tz-selection').html(data.text.replace(/\n/g, '<br/>'));
-                    },
-                    templateResult: function (data) {
-                        // This allows you to add HTML to the select data 'text' attribute without affecting its value in the actual input box
-                        // module.debug(data);
-                        if (!data.id) {
-                            return data.text;
-                        }
+                module.data.config[field]['appointment_options'] = data; // Save for later reference if needed
+                module.data.config[field]['appointment_dates'] = response.dates; // Save unique dates for calendar rendering
+                module.debug("Update calendar!");
 
-                        // Convert newlines to <br/>
-                        var description = data.text.replace(/\n/g, '<br/>');
-                        // module.debug(description);
-                        $result = $('<div>' + description + '</div>');
-                        return $result;
-                    },
-                    placeholder: "Select an appointment...",
-                    allowClear: true
-                }).on('change', function() {
+                // Add Calendar
+                $('#calendar').bootstrapDatepicker({
+                    format: 'yyyy-mm-dd',
+                    todayHighlight: true,
+                    autoclose: false,      // click does not hide, but inline already keeps it open
+                    multidate: true,
+                    orientation: 'bottom',  // optional
+                    beforeShowDay: function (date) {
+                        // Check if appointment_dates exists for this field
+                        const appointmentDates = module.data.config[field] && module.data.config[field]['appointment_dates'];
+
+                        // Use actual appointment dates - check if the date key exists in the object
+                        const dateStr = date.getFullYear() + '-' +
+                                       String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                                       String(date.getDate()).padStart(2, '0');
+                        const enabled = dateStr in appointmentDates;
+
+                        return {
+                            enabled: enabled,
+                            classes: enabled ? 'available-date' : 'disabled-day',
+                            tooltip: enabled ? 'Available appointments' : 'Not available'
+                        };
+                    }
+                }).on('changeDate', function (e) {
+                    // Get all selected dates (supports multidate selection)
+                    const selectedDates = $(this).bootstrapDatepicker('getDates').map(date => {
+                        return date.getFullYear() + '-' +
+                               String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                               String(date.getDate()).padStart(2, '0');
+                    });
+                    module.debug("Selected Dates: ", selectedDates);
+
+                    // Filter appointments based on selected dates
+                    module.filterAppointmentsByDates(field, selectedDates);
+                });
+
+                // Initialize with all appointments showing (no date filter)
+                module.clearCalendarFilter();
+//                module.filterAppointmentsByDates(field, []);
+
+                $select.on('change', function() {
                     // We are going to ignore change event, as all that matters is a 'SAVE' event
                     module.debug('change event triggered');
+
+                    // This was a hack to get it to render right, but don't remember the details...
                     $('span.select2-selection--single', '#tz_select_appt_modal').addClass('select2-selection--multiple').removeClass('select2-selection--single');
+
+                    // If $select has a value, then hide the tz_calendar_filter div - otherwise show the calendar
+                    if ($select.val()) {
+                        $('#tz_calendar_filter').hide();
+                    } else {
+                        $('#tz_calendar_filter').show();
+                    }
                 });
+
+                $select.on('select2:open', function () {
+                    console.log(this);
+                    $('.select2-search__field').attr('placeholder', 'Select an appointment or type here to filter by keyword…');
+                    $('.tz_toggle_appointments').text('Hide Apppointment List');
+                });
+
+                $select.on('select2:close', function () {
+                    $('.tz_toggle_appointments').text('Click to choose an available appointment');
+                });
+
             }).catch(function (err) {
                 module.debug("Error fetching appointments: ", err);
                 alert(err);
             });
+        },
+
+
+        // Filter appointments in the select2 dropdown based on selected calendar dates
+        filterAppointmentsByDates: function(field, selectedDates) {
+            module.debug("Selected Dates for filtering: ", selectedDates);
+            const $select = $('#tz_select_appt');
+            const allOptions = module.data.config[field]['appointment_options'];
+            const allDates = module.data.config[field]['appointment_dates'];
+            var Options = [];
+
+            if (!allOptions || selectedDates.length === 0) {
+                Options = allOptions;
+            } else {
+                // Filter options based on selected dates
+                const filteredOptions = allOptions.filter(option => {
+                    if (!option.id) return true; // Keep placeholder option
+                    // Extract date from participant_date if available, or parse from appointment data
+                    const appointmentDates = module.data.config[field]['appointment_dates'];
+                    if (appointmentDates && typeof appointmentDates === 'object') {
+                        // Check if this appointment ID appears in any of the selected dates
+                        return selectedDates.some(date => {
+                            return appointmentDates[date] && appointmentDates[date].includes(option.id);
+                        });
+                    }
+                    return true;
+                });
+                Options = filteredOptions;
+            }
+
+            // Update select2 with filtered data
+            $select.empty().select2({
+                width: '100%',
+                dropdownParent: $('#tz_select_appt_modal'),
+                data: Options,
+                templateSelection: function (data) {
+                    if (!data.id) {
+                        // return data.text
+                        // Render a button-like placeholder
+                        return $('<div class="d-flex justify-content-center">' +
+                            '<span class="btn btn-sm btn-primary tz_toggle_appointments">Click to choose an available appointment</span>' +
+                            '</div>');
+                    };
+                    return $('<div>').addClass('tz-selection').html(data.text.replace(/\n/g, '<br/>'));
+                },
+                templateResult: function (data) {
+                    if (!data.id) return data.text;
+                    var description = data.text.replace(/\n/g, '<br/>');
+                    return $('<div>' + description + '</div>');
+                },
+                placeholder: "Click to choose an available appointment",
+                allowClear: true
+            });
+
+            // Open the dropdown to show updated options
+            // $select.select2('open');
+            // $('.tz_toggle_appointments').text('Hide Apppointments');
+
+            // Determine Filter Text
+            let cfs = '';
+            const optionCount = Options.length-1; // Exclude placeholder
+
+            if (selectedDates.length === 0) {
+                cfs = '';
+                // cfs = 'Showing <b>All ' + optionCount + '</b> available slots spanning ' + Object.keys(allDates).length
+                // + ' different dates.'; //<div class="pt-1"><i>Use the calendar above to filter by dates</i>';
+                $('#tz_clear_calendar_filter_button').hide();
+            } else {
+                // cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on the ' +
+                //     selectedDates.length + ' selected day' + (selectedDates.length > 1 ? 's' : '');
+                // cfs = 'Date filter leaves <b>' + optionCount + ' of ' + (allOptions.length - 1) + '</b> slots available on   selected day' + (selectedDates.length > 1 ? 's' : '');
+                cfs = 'Filtering for <b>' + selectedDates.length + '</b> selected date' + (selectedDates.length > 1 ? 's' : '') + '. ';
+                $('#tz_clear_calendar_filter_button').show();
+            }
+            $('#tz_calendar_filter_status').html(cfs);
+
+            module.debug("Showing ", optionCount, " of ", (allOptions.length - 1), " options");
         },
 
 
@@ -767,6 +890,29 @@
             });
             $('button[data-action="ok"]', $modalCopy).hide();
             modal.show();
+        },
+
+
+        // Clear calendar date filter and show all appointments
+        clearCalendarFilter: function() {
+            module.debug("Clearing calendar filter");
+
+            // Clear the calendar selection
+            $('#calendar').bootstrapDatepicker('clearDates');
+            $('#calendar').bootstrapDatepicker('defaultViewDate', new Date());
+
+            // Update the filter status display
+            // $('#tz_calendar_filter_status').html('Showing <b>All Appointments</b>.  <i>Optionally use the calendar to filter</i>');
+
+            // Hide the clear filter button
+            $('#tz_clear_calendar_filter_button').hide();
+
+            // Get the current field from the appointment selector
+            const field = $('#tz_select_appt').data('field');
+            if (field) {
+                // Reset to show all appointments (empty array means no date filter)
+                module.filterAppointmentsByDates(field, []);
+            }
         }
     });
 }
