@@ -67,8 +67,17 @@ $projectHomeUrl = function ($pid) {
 
       <h5 class="mt-4"><i class="fas fa-cog"></i> Configuration in this project</h5>
       <?php if (empty($config_summary)): ?>
-        <div class="alert alert-warning">No appointment fields are configured yet. Use
-          <b>External Modules &rarr; Configure</b> to add one.</div>
+        <div class="alert alert-warning">
+          <p class="mb-2"><b>This project has no Timezone Scheduler appointments configured yet.</b></p>
+          <p class="mb-1">To get started:</p>
+          <ol class="mb-0">
+            <li>Create a <b>Slot Database</b> project to hold your available appointment slots. See the
+              <a href="https://github.com/123andy/redcap_timezone_scheduler#readme" target="_blank" rel="noopener">module README on GitHub</a>
+              for step-by-step instructions and an importable slot database template.</li>
+            <li>Then configure this project: click the <b>External Modules</b> link in the left sidebar,
+              find <b>Timezone Scheduler</b>, and choose <b>Configure</b> to map an appointment field to your Slot Database.</li>
+          </ol>
+        </div>
       <?php else: ?>
         <p><b><?= count($config_summary) ?></b> appointment field configuration(s)
            (<?= $enabled_count ?> enabled, <?= $disabled_count ?> disabled) drawing from
