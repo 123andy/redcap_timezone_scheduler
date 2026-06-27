@@ -45,20 +45,19 @@ $projectHomeUrl = function ($pid) {
   <!-- Tabs nav -->
   <ul class="nav nav-tabs" id="tabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1" type="button" role="tab" aria-controls="tab1" aria-selected="true"><h6>Instructions</h6></button>
+      <button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1" type="button" role="tab" aria-controls="tab1" aria-selected="true"><h6><i class="fas fa-circle-info mr-1"></i> Overview</h6></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2" type="button" role="tab" aria-controls="tab2" aria-selected="false"><h6>Appointments</h6></button>
+      <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2" type="button" role="tab" aria-controls="tab2" aria-selected="false"><h6><i class="fas fa-calendar-check mr-1"></i> Appointments</h6></button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="tab3-tab" data-bs-toggle="tab" data-bs-target="#tab3" type="button" role="tab" aria-controls="tab3" aria-selected="false"><h6>Slots Database</h6></button>
+      <button class="nav-link" id="tab3-tab" data-bs-toggle="tab" data-bs-target="#tab3" type="button" role="tab" aria-controls="tab3" aria-selected="false"><h6><i class="fas fa-database mr-1"></i> Slots Database</h6></button>
     </li>
   </ul>
 
   <!-- Tabs content -->
   <div class="tab-content pt-3" id="myTabContent">
     <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab1-tab">
-      <h5><i class="fas fa-info-circle"></i> Overview</h5>
       <p>The <b>Timezone Scheduler</b> lets participants book appointments from a separate
          <b>Slot Database</b> project and view available times in their own timezone. The selected
          slot's <code>slot_id</code> is stored in an appointment field on this project, and the slot
@@ -131,10 +130,11 @@ $projectHomeUrl = function ($pid) {
       <p class="text-muted" style="font-size:12px;">
          <i class="fas fa-exclamation-triangle"></i> Anyone with this URL can view the feed. Treat it like a password.</p>
 
-      <div class="input-group" style="max-width:640px;">
+      <div class="input-group" style="width:100%;">
         <input id="tz_ical_feed_url" type="text" class="form-control" readonly
+               style="font-size:11px;"
                value="<?= $module->escape($ical_feed_url) ?>" onclick="this.select();">
-        <button id="tz_copy_ical_url" type="button" class="btn btn-secondary" title="Copy to clipboard">
+        <button id="tz_copy_ical_url" type="button" class="btn btn-secondary" title="Copy to clipboard" style="font-size:11px;">
           <i class="fas fa-copy"></i> Copy
         </button>
       </div>
@@ -186,6 +186,18 @@ $projectHomeUrl = function ($pid) {
 
     <!-- Tab 3: Slots Database -->
     <div class="tab-pane fade" id="tab3" role="tabpanel" aria-labelledby="tab3-tab">
+
+      <h5><i class="fas fa-calendar-day mr-1"></i> Calendar View</h5>
+      <p>Each day shows a <span class="badge bg-primary">booked / total</span> badge for its slots.
+        <span class="ml-2"><span class="tz-cal-swatch tz-cal-open"></span> open &nbsp;
+        <span class="tz-cal-swatch tz-cal-partial"></span> partially booked &nbsp;
+        <span class="tz-cal-swatch tz-cal-full"></span> fully booked</span>
+      </p>
+      <div id="tz_admin_calendar"></div>
+
+      <hr/>
+
+      <h5><i class="fas fa-list mr-1"></i> All Slots</h5>
       <p>Below is a list of all slots, including some slots that may be present in the appointments tab.</p>
       <div style="width: 100%; max-width: 900px; margin: 0;">
         <table id="Slots" class="table table-striped" style="max-width: 100%">
@@ -239,6 +251,8 @@ $projectHomeUrl = function ($pid) {
 $module->initializeJavascriptModuleObject();
 $data = [];
 ?>
+<link rel="stylesheet" href="<?=$module->getUrl('assets/bootstrap-datepicker.min.css',true)?>">
+<script src="<?=$module->getUrl('assets/bootstrap-datepicker.min.js',true)?>"></script>
 <script src="<?=$module->getUrl("assets/admin_jsmo.js",true)?>"></script>
 <script>
     (function() {
@@ -263,6 +277,34 @@ $data = [];
     .fa-circle-info:hover {
         cursor: help;
     }
+
+    /* Slots calendar view */
+    #tz_admin_calendar .datepicker,
+    #tz_admin_calendar .datepicker-inline { width: auto; }
+    #tz_admin_calendar table { font-size: 13px; }
+    #tz_admin_calendar td,
+    #tz_admin_calendar th {
+        width: 52px; min-width: 52px; height: 50px;
+        vertical-align: top; padding-top: 5px; text-align: center;
+    }
+    /* keep the days themselves from being painted as solid blocks */
+    #tz_admin_calendar td.day { background: none; }
+    /* A div (not span) avoids bootstrap-datepicker's built-in ".datepicker td span" styling */
+    #tz_admin_calendar .tz-cal-badge {
+        display: block; float: none; white-space: nowrap;
+        width: max-content; max-width: 100%; height: auto;
+        font-size: 9px; line-height: 1.2; margin: 2px auto 0;
+        padding: 0 5px; border-radius: 8px; background:#e9ecef; color:#333;
+    }
+    #tz_admin_calendar .tz-cal-full .tz-cal-badge    { background:#dc3545; color:#fff; }
+    #tz_admin_calendar .tz-cal-partial .tz-cal-badge { background:#ffc107; color:#000; }
+    #tz_admin_calendar .tz-cal-open .tz-cal-badge    { background:#28a745; color:#fff; }
+
+    /* Legend swatches */
+    .tz-cal-swatch { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:middle; }
+    .tz-cal-swatch.tz-cal-open    { background:#28a745; }
+    .tz-cal-swatch.tz-cal-partial { background:#ffc107; }
+    .tz-cal-swatch.tz-cal-full    { background:#dc3545; }
 </style>
 
 <hr/>

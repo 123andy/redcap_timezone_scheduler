@@ -267,6 +267,9 @@
 
                     module.slots_table = table;  // Save reference to table
                     table.draw();
+
+                    // Render the calendar view from the same data
+                    module.renderSlotsCalendar(slotsArray);
                 } else {
                     module.debug("Failed to obtain Slots Verification Data:", response);
                     module.notify("Error", "Failed to obtain Slots Verification Data:\n\n" + response.message);
@@ -276,6 +279,60 @@
                 // Handle error
                 module.debug("Error getting Slots Verification Data: ", err);
                 module.notify("Error Fetching Slots Verification Data", err);
+            });
+        },
+
+
+        // Render an inline calendar where each day shows a "booked / total" badge
+        renderSlotsCalendar: function(slotsArray) {
+            var $cal = $('#tz_admin_calendar');
+            if (!$cal.length || typeof $cal.bootstrapDatepicker !== 'function') {
+                module.debug("Slots calendar container or datepicker plugin not available");
+                return;
+            }
+
+            // Aggregate slot counts per date
+            var dateMap = {};
+            (slotsArray || []).forEach(function(s) {
+                var d = s.date;
+                if (!d) return;
+                if (!dateMap[d]) dateMap[d] = { total: 0, booked: 0, available: 0, cancelled: 0 };
+                dateMap[d].total++;
+                var st = s.status || '';
+                if (st.indexOf('Reserved') === 0) dateMap[d].booked++;
+                else if (st.indexOf('Available') === 0) dateMap[d].available++;
+                else if (st.indexOf('Cancelled') === 0) dateMap[d].cancelled++;
+            });
+            module.slot_date_summary = dateMap;
+            module.debug("Slot date summary", dateMap);
+
+            // Re-init cleanly if called more than once
+            try { $cal.bootstrapDatepicker('destroy'); } catch (e) { /* not yet initialized */ }
+
+            $cal.bootstrapDatepicker({
+                format: 'yyyy-mm-dd',
+                todayHighlight: true,
+                maxViewMode: 1,        // don't drill out past months
+                beforeShowDay: function(date) {
+                    var ds = date.getFullYear() + '-' +
+                             String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(date.getDate()).padStart(2, '0');
+                    var info = module.slot_date_summary[ds];
+                    if (!info || info.total === 0) {
+                        return { enabled: true };
+                    }
+                    var cls = info.booked >= info.total ? 'tz-cal-full'
+                            : (info.booked > 0 ? 'tz-cal-partial' : 'tz-cal-open');
+                    var tip = 'Booked: ' + info.booked + ' / ' + info.total + ' slots'
+                            + (info.available ? '\nAvailable: ' + info.available : '')
+                            + (info.cancelled ? '\nBlocked: ' + info.cancelled : '');
+                    return {
+                        enabled: true,
+                        classes: 'tz-cal-day ' + cls,
+                        tooltip: tip,
+                        content: date.getDate() + '<div class="tz-cal-badge">' + info.booked + '/' + info.total + '</div>'
+                    };
+                }
             });
         },
 
