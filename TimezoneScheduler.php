@@ -1915,25 +1915,6 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         "data" => $data
                     ];
                     break;
-                case "getSlot":
-                    // Return just the requested slot
-                    $this->emDebug("getSlot called with payload: ", $payload);
-                    $config_key = $payload['config_key'] ?? null;
-                    $slot_id = $payload['slot_id'] ?? null;
-                    $slot = $this->getSlot($config_key, $slot_id);
-                    if (empty($slot)) {
-                        $result = [
-                            "success" => false,
-                            "message" => "No appointment slot found"
-                        ];
-                    } else {
-                        $result = [
-                            "success" => true,
-                            "data" => $slot
-                        ];
-                    }
-                    break;
-
                 case "reserveSlot":
                     // Reserve a specific appointment slot
                     $config_key = $payload['config_key'];

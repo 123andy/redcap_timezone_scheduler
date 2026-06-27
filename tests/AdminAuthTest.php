@@ -48,4 +48,19 @@ class AdminAuthTest extends \ExternalModules\ModuleBaseTest
             'permission', $res['message'] ?? '', "participant actions must not be gated by the design-rights guard"
         );
     }
+
+    public function testGetSlotActionIsNoLongerServed()
+    {
+        // The getSlot action (which returned a whole slot row, enabling cross-participant
+        // enumeration) has been removed; the dispatcher must no longer recognize it.
+        // (The framework also rejects it pre-dispatch since it's no longer in config.json.)
+        $res = $this->module->redcap_module_ajax(
+            'getSlot', ['config_key' => 'x', 'slot_id' => 1],
+            null, null, null, null, null, null, null, null, null, null, null, null
+        );
+        $this->assertIsArray($res);
+        $this->assertFalse($res['success'] ?? true, "getSlot action must no longer be served");
+        // It must not return slot data
+        $this->assertArrayNotHasKey('data', $res, "getSlot must not return any slot data");
+    }
 }
