@@ -51,6 +51,13 @@ class ReserveSlotIntegrationTest extends \ExternalModules\ModuleBaseTest
         if (!$cfg || (string)($cfg['slot-project-id'] ?? '') !== (string)self::SLOT_PID) {
             $this->markTestSkipped("Module not configured (" . self::CONFIG_KEY . ") on pid " . self::APPT_PID);
         }
+
+        // Real bookings require the record to already exist (the appointment selector only renders
+        // for an existing record), so create the throwaway record before each reserve test.
+        \REDCap::saveData(self::APPT_PID, 'json', json_encode([[
+            'record_id'         => self::TEST_RECORD,
+            'redcap_event_name' => \REDCap::getEventNames(true, true, self::EVENT_ID),
+        ]]), 'overwrite');
     }
 
     public function tearDown(): void
@@ -183,5 +190,38 @@ class ReserveSlotIntegrationTest extends \ExternalModules\ModuleBaseTest
 
         $rec = $this->module->getRecord(self::CONFIG_KEY, self::TEST_RECORD, 1);
         $this->assertEmpty($rec[self::APPT_FIELD] ?? '', "record appointment field should be cleared after cancel");
+    }
+
+    public function testReserveRefusesSlotOutsideFilterOrWindow()
+    {
+        $slot = $this->firstFutureAvailableSlot();
+        if ($slot === null) $this->markTestSkipped("No future available slot in pid " . self::SLOT_PID);
+
+        // Tag the slot with a slot_filter the test record won't match, so it leaves the bookable
+        // set (getSlots compares slot_filter to the record's filter value regardless of config).
+        $orig = $this->module->getSlot(self::CONFIG_KEY, $slot);
+        $modified = $orig;
+        $modified['slot_filter'] = 'ZZZ_TEST_DO_NOT_BOOK';
+        $this->module->saveSlot(self::CONFIG_KEY, $modified);
+
+        try {
+            $threw = false;
+            try {
+                $this->module->reserveSlot(
+                    self::CONFIG_KEY, $slot, 'America/New_York', self::APPT_PID, self::TEST_RECORD, self::INSTRUMENT, self::EVENT_ID, 1
+                );
+            } catch (\Exception $e) {
+                $threw = true;
+            }
+            $this->assertTrue($threw, "reserving a slot outside the record's slot filter should be refused");
+
+            $s = $this->module->getSlot(self::CONFIG_KEY, $slot);
+            $this->assertEmpty($s['reserved_ts'], "a filtered-out slot must not be reserved");
+        } finally {
+            // restore the slot's original slot_filter so the data is left unchanged
+            $restore = $this->module->getSlot(self::CONFIG_KEY, $slot);
+            $restore['slot_filter'] = $orig['slot_filter'] ?? '';
+            $this->module->saveSlot(self::CONFIG_KEY, $restore);
+        }
     }
 }

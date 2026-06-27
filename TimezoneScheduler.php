@@ -1284,6 +1284,16 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 $this->emDebug("Slot $slot_id is already reserved");
                 throw new TimezoneException("The requested slot is no longer available.  Please try again.");
             }
+
+            // Re-enforce the same availability constraints the UI applied (project_filter, slot_filter,
+            // and the max-days-ahead window) so a crafted or stale slot_id cannot bypass them.
+            // getSlots(..., true, ...) returns exactly the bookable set for this record.
+            $slot_filter_value = $this->getSlotFilterValue($config_key, $record, $repeat_instance);
+            $available = $this->getSlots($config_key, true, $slot_filter_value);
+            if (!isset($available[$slot_id])) {
+                $this->emError("Slot $slot_id is not in the available/filtered set for record $record (config $config_key, filter '$slot_filter_value')");
+                throw new TimezoneException("The requested slot is no longer available.  Please try again.");
+            }
             $this->emDebug("Slot $slot_id is available, proceeding with reservation");
 
             // Find description for slot and timezone
