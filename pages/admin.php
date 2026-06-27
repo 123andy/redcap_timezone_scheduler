@@ -157,6 +157,17 @@ $projectHomeUrl = function ($pid) {
             }
         });
       </script>
+
+      <h5 class="mt-4"><i class="fas fa-bug"></i> Problems or Feedback?</h5>
+      <p>If you run into a bug, have a question, or want to request a feature, please report it as a
+         GitHub issue on the module's repository. Including steps to reproduce and any relevant
+         error messages helps a lot.</p>
+      <p>
+        <a href="https://github.com/123andy/redcap_timezone_scheduler/issues" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="fab fa-github"></i> Report an Issue on GitHub
+        </a>
+      </p>
     </div>
     <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
       <p>Below are all appointments for this project.  Use the search box in the upper corner to filter the list.
