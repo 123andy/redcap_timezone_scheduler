@@ -148,6 +148,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 }
                 $errors = [];
                 $actions = [];
+                $note = '';
 
                 $status = "Available";
                 $reserved = $slot['reserved_ts'] ?? null;
@@ -218,7 +219,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                             $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
                         } else {
                             if (count($appt_map[$slot_id]) > 1) {
-                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id] . "</pre>");
+                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id]) . "</pre>";
                             } else {
                                 $appt_info = $appt_map[$slot_id][0];
                                 if ($appt_info['appt_record'] != $source_record_id
@@ -1383,6 +1384,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 }
                 $errors = [];
                 $actions = [];
+                $note = '';
 
                 $status = "Available";
                 $reserved = $slot['reserved_ts'] ?? null;
@@ -1453,7 +1455,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                             $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
                         } else {
                             if (count($appt_map[$slot_id]) > 1) {
-                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id] . "</pre>");
+                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id]) . "</pre>";
                             } else {
                                 $appt_info = $appt_map[$slot_id][0];
                                 if ($appt_info['appt_record'] != $source_record_id
