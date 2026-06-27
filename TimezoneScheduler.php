@@ -193,12 +193,33 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
     /**
      * Verify the slots in the slot database(s) for consistency.
+     * Free-text fields are HTML-escaped here (the admin table renders them as HTML) while URLs,
+     * ids, status, and actions are left raw for the buttons and follow-up actions to work.
      * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
      *               (status, errors, and admin actions added)
      * @throws TimezoneException
      */
     public function verifySlots() {
-        return $this->buildSlotVerificationResults();
+        return $this->escapeVerificationRows($this->buildSlotVerificationResults());
+    }
+
+    /**
+     * HTML-escape the free-text fields of slot verification rows (XSS hardening for the admin
+     * table, where these come from the slot database / booking project title). URLs, ids,
+     * status, and the actions array are intentionally not escaped.
+     * @param array $rows
+     * @return array
+     */
+    public function escapeVerificationRows(array $rows) {
+        foreach ($rows as &$row) {
+            foreach (['title', 'note', 'slot_filter', 'project_filter'] as $f) {
+                if (isset($row[$f])) {
+                    $row[$f] = $this->escape($row[$f]);
+                }
+            }
+        }
+        unset($row);
+        return $rows;
     }
 
     /**
