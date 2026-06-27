@@ -138,4 +138,50 @@ class ReserveSlotIntegrationTest extends \ExternalModules\ModuleBaseTest
         // Lock released by the finally block even on the failure path
         $this->assertSame(1, $this->lockFree($slot), "slot lock should be released after a failed reservation");
     }
+
+    public function testCancelRefusesWhenSlotNotOwnedByRecord()
+    {
+        $slot = $this->firstFutureAvailableSlot();
+        if ($slot === null) $this->markTestSkipped("No future available slot in pid " . self::SLOT_PID);
+        $this->slotId = $slot;
+
+        // Reserve for our test record
+        $this->module->reserveSlot(
+            self::CONFIG_KEY, $slot, 'America/New_York', self::APPT_PID, self::TEST_RECORD, self::INSTRUMENT, self::EVENT_ID, 1
+        );
+
+        // Attempt to cancel as a DIFFERENT record -> must be refused (cannot free someone else's slot)
+        $threw = false;
+        try {
+            $this->module->cancelAppointment($slot, self::CONFIG_KEY, '9002', self::EVENT_ID, 1);
+        } catch (\Exception $e) {
+            $threw = true;
+        }
+        $this->assertTrue($threw, "cancel by a non-owning record should be refused");
+
+        // The slot must remain reserved for the original record
+        $s = $this->module->getSlot(self::CONFIG_KEY, $slot);
+        $this->assertNotEmpty($s['reserved_ts'], "slot must remain reserved after a refused cancel");
+        $this->assertEquals(self::TEST_RECORD, $s['source_record_id']);
+    }
+
+    public function testSelfCancelClearsBothSides()
+    {
+        $slot = $this->firstFutureAvailableSlot();
+        if ($slot === null) $this->markTestSkipped("No future available slot in pid " . self::SLOT_PID);
+        $this->slotId = $slot;
+
+        $this->module->reserveSlot(
+            self::CONFIG_KEY, $slot, 'America/New_York', self::APPT_PID, self::TEST_RECORD, self::INSTRUMENT, self::EVENT_ID, 1
+        );
+
+        // Cancel as the owning record -> clears both sides
+        $this->module->cancelAppointment($slot, self::CONFIG_KEY, self::TEST_RECORD, self::EVENT_ID, 1);
+
+        $s = $this->module->getSlot(self::CONFIG_KEY, $slot);
+        $this->assertEmpty($s['reserved_ts'], "slot should be freed after a valid self-cancel");
+
+        $rec = $this->module->getRecord(self::CONFIG_KEY, self::TEST_RECORD, 1);
+        $this->assertEmpty($rec[self::APPT_FIELD] ?? '', "record appointment field should be cleared after cancel");
+    }
 }
