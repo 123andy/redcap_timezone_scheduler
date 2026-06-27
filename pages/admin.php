@@ -37,8 +37,10 @@ $projectHomeUrl = function ($pid) {
 
 ?>
 
-<h3>The Timezone Scheduler Admin Page</h3>
-<p>From this page you can review all appointments on this project.  Appointments with potential issues are highlighted:</p>
+<h3><i class="fas fa-clock"></i> Timezone Scheduler Admin</h3>
+<p class="text-muted" style="max-width:900px;">Manage timezone-aware appointment scheduling for this project. Review how the module is configured
+and how your slot databases are being used, audit booked appointments and slots for inconsistencies
+(and fix them in place), and share a live calendar feed of upcoming appointments.</p>
 
 <div class="container-fluid my-4">
 
