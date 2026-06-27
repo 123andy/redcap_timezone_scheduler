@@ -26,7 +26,6 @@
         "getAppointmentData",
         "getAppointmentOptions",
         "cancelAppointment",
-        "getSlot",
         "reserveSlot",
         "addToCalendar",
         "cancelAppointmentFromUrl",
@@ -44,7 +43,6 @@
         "getAppointmentData",
         "getAppointmentOptions",
         "cancelAppointment",
-        "getSlot",
         "reserveSlot",
         "addToCalendar",
         "cancelAppointmentFromUrl"

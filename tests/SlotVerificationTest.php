@@ -176,4 +176,32 @@ class SlotVerificationTest extends \ExternalModules\ModuleBaseTest
         $this->assertSame(0, $s['total']);
         $this->assertSame(0, $s['percent_used']);
     }
+
+    function testEscapeVerificationRowsEscapesFreeTextFields()
+    {
+        $rows = [
+            '40:5' => [
+                'title'          => '<script>alert(1)</script>',
+                'note'           => 'A & B "quoted"',
+                'slot_filter'    => '<img src=x onerror=alert(1)>',
+                'project_filter' => 'plain',
+                // these must NOT be altered (used by buttons / follow-up actions)
+                'slot_url'       => 'https://x/redcap_v15/DataEntry/index.php?pid=40&id=5&page=slots',
+                'slot_id'        => 5,
+                'status'         => 'Reserved',
+            ],
+        ];
+
+        $out = $this->module->escapeVerificationRows($rows);
+
+        $this->assertStringNotContainsString('<script>', $out['40:5']['title']);
+        $this->assertStringContainsString('&lt;script&gt;', $out['40:5']['title']);
+        $this->assertStringNotContainsString('<img', $out['40:5']['slot_filter']);
+        $this->assertStringContainsString('&amp;', $out['40:5']['note']);
+        $this->assertStringContainsString('&quot;', $out['40:5']['note']);
+        // unchanged: a plain value and the non-escaped fields (URL ampersands intact)
+        $this->assertSame('plain', $out['40:5']['project_filter']);
+        $this->assertStringContainsString('pid=40&id=5', $out['40:5']['slot_url']);
+        $this->assertSame(5, $out['40:5']['slot_id']);
+    }
 }
