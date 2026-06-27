@@ -131,6 +131,41 @@ class AppointmentOptionsTest extends \ExternalModules\ModuleBaseTest
         $this->assertArrayNotHasKey('', $u);
     }
 
+    function testInvalidClientTimezoneFallsBackToServer()
+    {
+        // A bad/unknown timezone string must not throw; it should fall back to the server tz.
+        $res = $this->options([5 => $this->futureSlot()], 'Not/AZone', "{slot_id}");
+        $this->assertCount(1, $res);
+        $this->assertSame('5', $res[0]['id']);
+    }
+
+    function testConvertServerDtToFieldFormats()
+    {
+        // datetime: server is always Y-m-d H:i; client follows the field's ordering
+        $r = $this->module->convertServerDtToFieldFormats('2099-12-31 09:00', 'datetime_ymd');
+        $this->assertSame('2099-12-31 09:00', $r['server']);
+        $this->assertSame('2099-12-31 09:00', $r['client']);
+
+        $r = $this->module->convertServerDtToFieldFormats('2099-12-31 09:00', 'datetime_mdy');
+        $this->assertSame('2099-12-31 09:00', $r['server']);   // server stays YMD
+        $this->assertSame('12-31-2099 09:00', $r['client']);
+
+        // datetime_seconds_*: seconds must be zeroed (not the current wall-clock second)
+        $r = $this->module->convertServerDtToFieldFormats('2099-12-31 09:00', 'datetime_seconds_ymd');
+        $this->assertSame('2099-12-31 09:00:00', $r['server']);
+
+        // date-only ordering
+        $r = $this->module->convertServerDtToFieldFormats('2099-12-31 09:00', 'date_mdy');
+        $this->assertSame('2099-12-31', $r['server']);
+        $this->assertSame('12-31-2099', $r['client']);
+    }
+
+    function testConvertServerDtRejectsUnsupportedValidationType()
+    {
+        $this->expectException(TimezoneException::class);
+        $this->module->convertServerDtToFieldFormats('2099-12-31 09:00', 'time');
+    }
+
     function testSlotToCalendarConfig()
     {
         $c = $this->module->slotToCalendarConfig(['date' => '2099-12-31', 'time' => '09:00', 'title' => 'Visit']);

@@ -772,7 +772,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         $config = $this->get_tz_config($config_key);
         $appointments = [];
         $now_dt = new DateTime("now");
-        $client_dtz = new DateTimeZone($client_timezone);
+        // Fall back to the server timezone if the client supplied an invalid/unknown timezone string
+        try {
+            $client_dtz = new DateTimeZone($client_timezone);
+        } catch (\Exception $e) {
+            $this->emError("Invalid client timezone '" . $client_timezone . "'; falling back to server default");
+            $client_dtz = new DateTimeZone(date_default_timezone_get());
+        }
         // $this->emDebug("Client timezone: $client_timezone");
 
         $description_format = $config['appt-description-format'] ?? self::DEFAULT_APPT_DESCRIPTION_FORMAT;
@@ -1257,6 +1263,33 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
 
     /**
+     * Convert a server-timezone 'Y-m-d H:i' datetime string into the stored (server) and display
+     * (client date-ordering) string formats for a REDCap date/datetime field's validation type.
+     * Pure helper (no project access) so it can be unit tested.
+     * @param string $server_dt_string A datetime string in 'Y-m-d H:i' (server timezone)
+     * @param string $validation_type  The field's element_validation_type (e.g. datetime_ymd)
+     * @return array{server:string, client:string}
+     * @throws TimezoneException if the validation type is not a supported date/datetime type
+     */
+    public function convertServerDtToFieldFormats($server_dt_string, $validation_type) {
+        if (!isset(self::VALIDATION_SERVER_CONVERSION_INDEX[$validation_type])) {
+            throw new TimezoneException("The appointment datetime field has an unsupported validation type ('"
+                . $validation_type . "'); it must be a date or datetime field.");
+        }
+        // Parse with a leading '!' so unspecified fields (seconds) reset to zero instead of the
+        // current wall-clock time -- otherwise datetime_seconds_* fields get spurious seconds.
+        $dt = DateTime::createFromFormat('!Y-m-d H:i', $server_dt_string);
+        if (!$dt) {
+            throw new TimezoneException("Failed to parse the appointment date/time ('" . $server_dt_string . "').");
+        }
+        return [
+            'server' => $dt->format(self::VALIDATION_SERVER_CONVERSION_INDEX[$validation_type]),
+            'client' => $dt->format(self::VALIDATION_CLIENT_CONVERSION_INDEX[$validation_type]),
+        ];
+    }
+
+
+    /**
      * Reserve a slot by updating the slot record with the reservation details
      * and updating the current record with the slot id
      * @param string $config_key The configuration key to use
@@ -1351,31 +1384,16 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
             $data[$this->getRecordIdField()] = $record;
             $data[$config['appt-field']] = $slot_id;
 
-            // Check for the datetime field and convert the appointment time to the proper format
-            $client_date = null;
+            // Check for the datetime field and convert the appointment time to the proper format.
+            // $display_date holds the SAME (server) instant in the field's date ordering, for the
+            // front end -- the stored value is intentionally the server timestamp.
+            $display_date = null;
             $adfield = $config['appt-datetime-field'] ?? null;
             if ($adfield) {
                 $date_validation_type = $this->getProject()->getREDCapProjectObject()->metadata[$adfield]['element_validation_type'];
-
-                $default_format = 'Y-m-d H:i'; // Default to ymd
-
-                if (isset(self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type])) {
-                    $server_format = self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type];
-                    $client_format = self::VALIDATION_CLIENT_CONVERSION_INDEX[$date_validation_type];
-                }
-
-                // $this->emDebug("Converting appointment server_dt " . $appointment['server_dt'] . " to format $format based on validation type $date_validation_type");
-
-                $server_dt = DateTime::createFromFormat('Y-m-d H:i', $appointment['server_dt']);
-
-                if( !$server_dt ) {
-                    $this->emError("Unable to convert appointment server_dt " . $appointment['server_dt'] . " to DateTime object");
-                    throw new TimezoneException("Failed to convert the appointment date/time to the proper format - please try again.");
-                }
-
-                $server_date = $server_dt->format($server_format ?? $default_format);
-                $client_date = $server_dt->format($client_format ?? $default_format);
-                $data[$adfield] = $server_date;
+                $formats = $this->convertServerDtToFieldFormats($appointment['server_dt'], $date_validation_type);
+                $data[$adfield] = $formats['server'];
+                $display_date = $formats['client'];
             }
 
             // Check for participant text date field
@@ -1433,9 +1451,9 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.\n\nError details: " . json_encode($q['errors']));
             }
 
-            // Prior to releasing data to front end, we need to update the date field to the client format:
-            if ($client_date && $adfield) {
-                $data[$adfield] = $client_date;
+            // Prior to releasing data to front end, present the date field in the field's display ordering:
+            if ($display_date && $adfield) {
+                $data[$adfield] = $display_date;
             }
             // Return the current record's data so it can be updated on the frontend
             return $data;
