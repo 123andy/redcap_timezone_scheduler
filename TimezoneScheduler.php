@@ -1250,148 +1250,165 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
         // Record lock name as object property so we can release it in any exception handler cases...
         $this->lock_name = $lock_name;
 
-        // First get the slot record
-        $slot = $this->getSlot($config_key, $slot_id);
-        // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
-        if (empty($slot)) {
-            $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to reservation");
-            throw new TimezoneException("Unable to locate the requested slot - please try again.");
-        }
+        // Tracks whether the slot has been persisted as reserved, so that if a later step fails
+        // (e.g. saving the appointment record) we can roll the slot back instead of orphaning it.
+        $slot_reserved = false;
 
-        $result = [];
-        if (!empty($slot['reserved_ts'])) {
-            $this->emDebug("Slot $slot_id is already reserved");
-            throw new TimezoneException("The requested slot is no longer available.  Please try again.");
-        }
-        $this->emDebug("Slot $slot_id is available, proceeding with reservation");
-
-        // Find description for slot and timezone
-        $options = $this->getAppointmentOptions($config_key, [$slot_id => $slot], $timezone);
-        $appointment = $options[0] ?? null;
-
-        if (empty($appointment)) {
-            $this->emError("Unable to locate appointment data for slot_id $slot_id in timezone $timezone");
-            throw new TimezoneException("Unable to locate appointment data for the requested slot - please try again.");
-        }
-
-        // Reserve slot
-        $slot['reserved_ts'] = date('Y-m-d H:i:s');
-        $slot['source_project_id'] = $project_id;
-        $slot['source_project_title'] = $this->getProject()->getTitle();
-        $slot['source_record_id'] = $record;
-        $slot['source_field'] = $config['appt-field'] ?? '';
-        $slot['source_event_id'] = $event_id;
-        $slot['source_instance_id'] = $repeat_instance;
-        // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=1&page=test_form&event_id=88&instance=1
-        // TODO replace with a EM-mediated redirect to get rid of the version number...
-        $slot['source_record_url'] = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION .
-            "/DataEntry/index.php?pid=$project_id&id=$record&page=$instrument&event_id=$event_id&instance=$repeat_instance";
-        $slot['participant_timezone'] = $timezone;
-        $slot['participant_description'] = $appointment['text'] ?? 'Unable to parse appointment';
-        $slot['slots_complete'] = 2;
-
-        if (! $this->saveSlot($config_key, $slot)) {
-            $this->emError("Error reserving slot data for config_key: $config_key, slot:", $slot);
-            throw new TimezoneException("Failed to reserve the requested slot - please try again.");
-        }
-
-        // Lets also update the current record so that the slot_id is saved here as well
-        $data = [];
-        $data[$this->getRecordIdField()] = $record;
-        $data[$config['appt-field']] = $slot_id;
-
-        // Check for the datetime field and convert the appointment time to the proper format
-        $client_date = null;
-        $adfield = $config['appt-datetime-field'] ?? null;
-        if ($adfield) {
-            $date_validation_type = $this->getProject()->getREDCapProjectObject()->metadata[$adfield]['element_validation_type'];
-
-            $default_format = 'Y-m-d H:i'; // Default to ymd
-
-            if (isset(self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type])) {
-                $server_format = self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type];
-                $client_format = self::VALIDATION_CLIENT_CONVERSION_INDEX[$date_validation_type];
+        try {
+            // First get the slot record
+            $slot = $this->getSlot($config_key, $slot_id);
+            // $this->emDebug("Slot record for slot_id $slot_id: ", $slot);
+            if (empty($slot)) {
+                $this->emError("Unable to locate slot data for config_key: $config_key with slot_id: $slot_id prior to reservation");
+                throw new TimezoneException("Unable to locate the requested slot - please try again.");
             }
 
-            // $this->emDebug("Converting appointment server_dt " . $appointment['server_dt'] . " to format $format based on validation type $date_validation_type");
+            if (!empty($slot['reserved_ts'])) {
+                $this->emDebug("Slot $slot_id is already reserved");
+                throw new TimezoneException("The requested slot is no longer available.  Please try again.");
+            }
+            $this->emDebug("Slot $slot_id is available, proceeding with reservation");
 
-            $server_dt = DateTime::createFromFormat('Y-m-d H:i', $appointment['server_dt']);
+            // Find description for slot and timezone
+            $options = $this->getAppointmentOptions($config_key, [$slot_id => $slot], $timezone);
+            $appointment = $options[0] ?? null;
 
-            if( !$server_dt ) {
-                $this->emError("Unable to convert appointment server_dt " . $appointment['server_dt'] . " to DateTime object");
-                $this->releaseLock($lock_name);
-                throw new TimezoneException("Failed to convert the appointment date/time to the proper format - please try again.");
+            if (empty($appointment)) {
+                $this->emError("Unable to locate appointment data for slot_id $slot_id in timezone $timezone");
+                throw new TimezoneException("Unable to locate appointment data for the requested slot - please try again.");
             }
 
-            $server_date = $server_dt->format($server_format ?? $default_format);
-            $client_date = $server_dt->format($client_format ?? $default_format);
-            $data[$adfield] = $server_date;
-        }
+            // Reserve slot
+            $slot['reserved_ts'] = date('Y-m-d H:i:s');
+            $slot['source_project_id'] = $project_id;
+            $slot['source_project_title'] = $this->getProject()->getTitle();
+            $slot['source_record_id'] = $record;
+            $slot['source_field'] = $config['appt-field'] ?? '';
+            $slot['source_event_id'] = $event_id;
+            $slot['source_instance_id'] = $repeat_instance;
+            // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=38&id=1&page=test_form&event_id=88&instance=1
+            // TODO replace with a EM-mediated redirect to get rid of the version number...
+            $slot['source_record_url'] = APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION .
+                "/DataEntry/index.php?pid=$project_id&id=$record&page=$instrument&event_id=$event_id&instance=$repeat_instance";
+            $slot['participant_timezone'] = $timezone;
+            $slot['participant_description'] = $appointment['text'] ?? 'Unable to parse appointment';
+            $slot['slots_complete'] = 2;
 
-        // Check for participant text date field
-        if ($config['appt-participant-text-date-field']) {
-            $data[$config['appt-participant-text-date-field']] = $appointment['participant_text_date'] ?? 'Unable to parse text date';
-        }
+            // saveSlot() throws a TimezoneException on failure; on success the slot is now reserved
+            $this->saveSlot($config_key, $slot);
+            $slot_reserved = true;
 
-        // Check for description field
-        if ($config['appt-description-field']) {
-            $data[$config['appt-description-field']] = $appointment['text'] ?? 'Unable to parse appointment';
-        }
+            // Lets also update the current record so that the slot_id is saved here as well
+            $data = [];
+            $data[$this->getRecordIdField()] = $record;
+            $data[$config['appt-field']] = $slot_id;
 
-        // Build a cancel URL if configured
-        if ($config['appt-cancel-url-field']) {
-            // Build cancel URL: The key should be specific to the slot_id, record, event, and instance, AND reservation ts so it is unique and not guessable
-            $key_raw = $config_key . "|" . $slot_id . "|" . $record . "|" . $event_id . "|" . $repeat_instance . "|" . $slot['reserved_ts'];
-            $key = encrypt($key_raw);
-            $cancel_url = $this->getUrl('pages/cancel.php', true) . "&" . http_build_query(["key" => $key]);
-            $data[$config['appt-cancel-url-field']] = $cancel_url;
-        }
+            // Check for the datetime field and convert the appointment time to the proper format
+            $client_date = null;
+            $adfield = $config['appt-datetime-field'] ?? null;
+            if ($adfield) {
+                $date_validation_type = $this->getProject()->getREDCapProjectObject()->metadata[$adfield]['element_validation_type'];
 
-        // TODO: Consider removing this url as well and just add a plugin hook to show the slot details
-        if ($config['slot-record-url-field']) {
-            // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
-            $data[$config['slot-record-url-field']] = APP_PATH_WEBROOT_FULL . 'redcap_v' .
-                REDCAP_VERSION . '/DataEntry/index.php?pid=' . $slot_project_id .
-                '&id=' . $slot_id . '&page=slots';
-        }
+                $default_format = 'Y-m-d H:i'; // Default to ymd
 
-        // Check if we need to add repeating form fields
-        $slot_id_field = $config['appt-field'] ?? null;
-        $slot_id_field_form = $this->getFormForField($slot_id_field);
-        $is_repeating = in_array($slot_id_field_form, $this->getRepeatingForms($event_id));
-        if ($is_repeating) {
-            $data['redcap_repeat_instrument'] = $slot_id_field_form;
-            $data['redcap_repeat_instance'] = $repeat_instance;
-        }
+                if (isset(self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type])) {
+                    $server_format = self::VALIDATION_SERVER_CONVERSION_INDEX[$date_validation_type];
+                    $client_format = self::VALIDATION_CLIENT_CONVERSION_INDEX[$date_validation_type];
+                }
 
-        // Check for redcap_event_name if longitudinal
-        if (REDCap::isLongitudinal()) {
-            $event_name = REDCap::getEventNames(true, true, $event_id) ?? null;
-            if ($event_name) {
-                $data['redcap_event_name'] = $event_name;
+                // $this->emDebug("Converting appointment server_dt " . $appointment['server_dt'] . " to format $format based on validation type $date_validation_type");
+
+                $server_dt = DateTime::createFromFormat('Y-m-d H:i', $appointment['server_dt']);
+
+                if( !$server_dt ) {
+                    $this->emError("Unable to convert appointment server_dt " . $appointment['server_dt'] . " to DateTime object");
+                    throw new TimezoneException("Failed to convert the appointment date/time to the proper format - please try again.");
+                }
+
+                $server_date = $server_dt->format($server_format ?? $default_format);
+                $client_date = $server_dt->format($client_format ?? $default_format);
+                $data[$adfield] = $server_date;
             }
+
+            // Check for participant text date field
+            if ($config['appt-participant-text-date-field']) {
+                $data[$config['appt-participant-text-date-field']] = $appointment['participant_text_date'] ?? 'Unable to parse text date';
+            }
+
+            // Check for description field
+            if ($config['appt-description-field']) {
+                $data[$config['appt-description-field']] = $appointment['text'] ?? 'Unable to parse appointment';
+            }
+
+            // Build a cancel URL if configured
+            if ($config['appt-cancel-url-field']) {
+                // Build cancel URL: The key should be specific to the slot_id, record, event, and instance, AND reservation ts so it is unique and not guessable
+                $key_raw = $config_key . "|" . $slot_id . "|" . $record . "|" . $event_id . "|" . $repeat_instance . "|" . $slot['reserved_ts'];
+                $key = encrypt($key_raw);
+                $cancel_url = $this->getUrl('pages/cancel.php', true) . "&" . http_build_query(["key" => $key]);
+                $data[$config['appt-cancel-url-field']] = $cancel_url;
+            }
+
+            // TODO: Consider removing this url as well and just add a plugin hook to show the slot details
+            if ($config['slot-record-url-field']) {
+                // https://redcap.local/redcap_v15.3.3/DataEntry/index.php?pid=40&id=14&page=slots
+                $data[$config['slot-record-url-field']] = APP_PATH_WEBROOT_FULL . 'redcap_v' .
+                    REDCAP_VERSION . '/DataEntry/index.php?pid=' . $slot_project_id .
+                    '&id=' . $slot_id . '&page=slots';
+            }
+
+            // Check if we need to add repeating form fields
+            $slot_id_field = $config['appt-field'] ?? null;
+            $slot_id_field_form = $this->getFormForField($slot_id_field);
+            $is_repeating = in_array($slot_id_field_form, $this->getRepeatingForms($event_id));
+            if ($is_repeating) {
+                $data['redcap_repeat_instrument'] = $slot_id_field_form;
+                $data['redcap_repeat_instance'] = $repeat_instance;
+            }
+
+            // Check for redcap_event_name if longitudinal
+            if (REDCap::isLongitudinal()) {
+                $event_name = REDCap::getEventNames(true, true, $event_id) ?? null;
+                if ($event_name) {
+                    $data['redcap_event_name'] = $event_name;
+                }
+            }
+
+            // Save the record in json format
+            $q = REDCap::saveData('json', json_encode([$data]));
+            // $this->emDebug("REDCap saveData result: ", $q);
+
+            // Check for the array 'errors' of a proper response
+            // Sometimes REDCap seems to throw a string error instead of an array with errors, such as "The data is not in the specified format."
+            if (!isset($q['errors']) || !empty($q['errors'])) {
+                $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q);
+                throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.\n\nError details: " . json_encode($q['errors']));
+            }
+
+            // Prior to releasing data to front end, we need to update the date field to the client format:
+            if ($client_date && $adfield) {
+                $data[$adfield] = $client_date;
+            }
+            // Return the current record's data so it can be updated on the frontend
+            return $data;
+        } catch (\Exception $e) {
+            // If we already reserved the slot but failed before completing the appointment record,
+            // roll the slot back to available so it is not orphaned. A rollback failure must never
+            // mask the original error.
+            if ($slot_reserved) {
+                try {
+                    $this->resetSlot($config_key, $slot_id);
+                    $this->emDebug("Rolled back reservation for slot $slot_id after failure: " . $e->getMessage());
+                } catch (\Exception $re) {
+                    $this->emError("Rollback failed for slot $slot_id after reservation error: " . $re->getMessage());
+                }
+            }
+            throw $e;
+        } finally {
+            // Always release the slot lock on every exit path (success or failure)
+            $this->releaseLock($lock_name);
+            $this->lock_name = '';
         }
-
-        // Save the record in json format
-        $q = REDCap::saveData('json', json_encode([$data]));
-        // $this->emDebug("REDCap saveData result: ", $q);
-
-        // Check for the array 'errors' of a proper response
-        // Sometimes REDCap seems to throw a string error instead of an array with errors, such as "The data is not in the specified format."
-        if (!isset($q['errors']) || !empty($q['errors'])) {
-            $this->emError("Error saving appointment data to record $record for config_key: $config_key, slot:", $data, $q);
-            throw new TimezoneException("Failed to save appointment data to this record - please report this error and try again.  It is possible the requested slot: $slot_id is no longer available even though it is not part of this record.\n\nError details: " . json_encode($q['errors']));
-        }
-
-        // Release Lock
-        $this->releaseLock($lock_name);
-
-        // Prior to releasing data to front end, we need to update the date field to the client format:
-        if ($client_date && $adfield) {
-            $data[$adfield] = $client_date;
-        }
-        // Return the current record's data so it can be updated on the frontend
-        return $data;
     }
 
     /**
