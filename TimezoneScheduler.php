@@ -1718,6 +1718,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     ];
                     break;
                 case "getSlotsVerificationData":
+                    $this->requireDesignRights();
                     $data = $this->verifySlots();
                     $result = [
                         "success" => true,
@@ -1725,6 +1726,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     ];
                     break;
                 case "getAppointmentVerificationData":
+                    $this->requireDesignRights();
                     $this->load_tz_configs();
                     $q = [];
                     foreach($this->config as $config_key => $config) {
@@ -1889,6 +1891,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
                 case "resetAppointment":
                     // This is called from the admin interface
+                    $this->requireDesignRights();
                     $config_key = $payload['config_key'] ?? null;
                     $record = $payload['record'] ?? null;
                     $instance = $payload['instance'] ?? 1;
@@ -1900,6 +1903,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
                 case "resetSlotAndAppointment":
                     // This is called from the admin interface
+                    $this->requireDesignRights();
                     $config_key = $payload['config_key'] ?? null;
                     $record = $payload['record'] ?? null;
                     $instance = $payload['instance'] ?? 1;
@@ -1943,6 +1947,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
                 case "resetSlot":
                     // Clear or Clear and Cancel a specific appointment slot
+                    $this->requireDesignRights();
                     $config_key = $payload['config_key'];
                     $slot_id = $payload['slot_id'];
                     $message = $payload['message'] ?? "Slot $slot_id reset by $user_id";
@@ -1956,6 +1961,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     break;
                 case "cancelSlot":
                     // Cancel a specific appointment slot
+                    $this->requireDesignRights();
                     $config_key = $payload['config_key'];
                     $slot_id = $payload['slot_id'];
                     $message = $payload['message'] ?? "Slot $slot_id canceled by $user_id";
@@ -2281,6 +2287,21 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 }
                 $this->config[$key] = array_merge(["key" => $key], $instance);
             }
+        }
+    }
+
+
+    /**
+     * Reject the current AJAX action unless the user is authenticated and has Design rights.
+     * Used to gate the admin-only verification/reset/cancel actions, which require a login but
+     * must not be callable by under-privileged project users (e.g. data-entry / read-only).
+     * @throws TimezoneException
+     */
+    private function requireDesignRights() {
+        if (!$this->isAuthenticated() || !$this->getUser() || !$this->getUser()->hasDesignRights()) {
+            $this->emError("Unauthorized admin action attempt (authenticated="
+                . ($this->isAuthenticated() ? 'yes' : 'no') . ", design rights required)");
+            throw new TimezoneException("You do not have permission to perform this action.");
         }
     }
 
