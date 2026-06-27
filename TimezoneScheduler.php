@@ -89,24 +89,40 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
 
     /**
-     * Verify the slots in the slot database for consistency
-     * @param string $config_key The configuration key to use
-     * @return array The slots with status, errors, and actions added
+     * Verify the slots in the slot database(s) for consistency.
+     * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
+     *               (status, errors, and admin actions added)
      * @throws TimezoneException
-     *
      */
     public function verifySlots() {
+        return $this->buildSlotVerificationResults();
+    }
+
+    /**
+     * Walk every configured slot database and build a verification map of all slots,
+     * annotating each with status, errors, and the admin actions available for it.
+     *
+     * Shared by verifySlots() and getIcalFeed().  Slots are keyed by a composite of
+     * "<slot_project_id>:<slot_id>" so that slots from different slot databases that
+     * happen to share the same record id (slot_id) do not collide with one another.
+     *
+     * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
+     * @throws TimezoneException
+     */
+    private function buildSlotVerificationResults() {
         $this->load_tz_configs();
-        $q = [];
         $now_dt = new DateTime("now");
         $results = [];
         $appt_map = [];
 
+        // Build a map of all appointments (by slot) across every config so that we can
+        // later verify each reserved slot is pointed back to by exactly one appointment.
         foreach($this->config as $config_key => $config) {
             // $this->emDebug("Checking slots for config $config_key: ", $config);
 
             // Get All Appointments for this config
             $appt_field = $config['appt-field'];
+            $slot_project_id = $config['slot-project-id'];
             $appts = $this->getRecords($config_key);
             $this->emDebug("Found " . count($appts) . " appointments for config_key $config_key");
             foreach ($appts as $appt) {
@@ -118,11 +134,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 $appt_repeat_instance = $appt_instance ? $appt_instance : 1;
                 $appt_slot_id = $appt[$appt_field];
 
-                if (!isset($appt_map[$appt_slot_id])) {
-                    $appt_map[$appt_slot_id] = [];
+                // Composite key so identical slot_ids across different slot DBs don't collide
+                $map_key = $slot_project_id . ':' . $appt_slot_id;
+                if (!isset($appt_map[$map_key])) {
+                    $appt_map[$map_key] = [];
                 }
 
-                $appt_map[$appt_slot_id][] = [
+                $appt_map[$map_key][] = [
                     'appt_project_id' => $this->getProjectId(),
                     'appt_field' => $appt_field,
                     'appt_record' => $appt_record,
@@ -142,8 +160,12 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
             // Get all the slots for this config
             foreach ($slots as $slot_id => $slot) {
-                if (isset($results[$slot_id]) && $results[$slot_id]['slot_project_id'] === $slot_project_id) {
-                    $results[$slot_id]['config_keys'][] = $config_key;
+                // Composite key so identical slot_ids across different slot DBs don't collide
+                $map_key = $slot_project_id . ':' . $slot_id;
+
+                if (isset($results[$map_key])) {
+                    // Same slot, also referenced by another config pointing at the same slot DB
+                    $results[$map_key]['config_keys'][] = $config_key;
                     continue;
                 }
                 $errors = [];
@@ -215,13 +237,13 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                         $source_event_id = $slot['source_event_id'] ?? null;
                         $source_instance_id = $slot['source_instance_id'] ?? null;
 
-                        if (empty($appt_map[$slot_id])) {
+                        if (empty($appt_map[$map_key])) {
                             $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
                         } else {
-                            if (count($appt_map[$slot_id]) > 1) {
-                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id]) . "</pre>";
+                            if (count($appt_map[$map_key]) > 1) {
+                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$map_key]) . "</pre>";
                             } else {
-                                $appt_info = $appt_map[$slot_id][0];
+                                $appt_info = $appt_map[$map_key][0];
                                 if ($appt_info['appt_record'] != $source_record_id
                                     || $appt_info['appt_event_id'] != $source_event_id
                                     || $appt_info['appt_repeat_instance'] != $source_instance_id
@@ -253,7 +275,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     }
                 }
 
-                $results[$slot_id] = [
+                $results[$map_key] = [
                     'slot_project_id' => $slot_project_id,
                     'config_keys' => [$config_key],
                     'slot_id' => $slot_id,
@@ -1348,180 +1370,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
 
     public function getIcalFeed() {
-        $this->load_tz_configs();
-        $now_dt = new DateTime("now");
-        $results = [];
-        $appt_map = [];
-        foreach($this->config as $config_key => $config) {
-            // Get All Appointments for this config
-            $appt_field = $config['appt-field'];
-            $appts = $this->getRecords($config_key);
-            $this->emDebug("Found " . count($appts) . " appointments for config_key $config_key");
-            foreach ($appts as $appt) {
-                $appt_event_name = $appt['redcap_event_name'] ?? null;
-                $appt_instance = $appt['redcap_repeat_instance'] ?? null;
-
-                $appt_record = $appt[REDCap::getRecordIdField()];
-                $appt_event_id = REDCap::getEventIdFromUniqueEvent($appt_event_name);
-                $appt_repeat_instance = $appt_instance ? $appt_instance : 1;
-                $appt_slot_id = $appt[$appt_field];
-
-                if (!isset($appt_map[$appt_slot_id])) {
-                    $appt_map[$appt_slot_id] = [];
-                }
-
-                $appt_map[$appt_slot_id][] = [
-                    'appt_project_id' => $this->getProjectId(),
-                    'appt_field' => $appt_field,
-                    'appt_record' => $appt_record,
-                    'appt_event_id' => $appt_event_id,
-                    'appt_repeat_instance' => $appt_repeat_instance,
-                    'config_key' => $config_key
-                ];
-            }
-        }
-        // $this->emDebug("Appointment Maps for all config_keys:", $appt_map);
-
-        foreach($this->config as $config_key => $config) {
-            // Get All Slots for this config
-            $slots = $this->getSlots($config_key, false);
-            $this->emDebug("Verifying " . count($slots) . " slots for config_key $config_key");
-            $slot_project_id = $config['slot-project-id'];
-
-            // Get all the slots for this config
-            foreach ($slots as $slot_id => $slot) {
-                if (isset($results[$slot_id]) && $results[$slot_id]['slot_project_id'] === $slot_project_id) {
-                    $results[$slot_id]['config_keys'][] = $config_key;
-                    continue;
-                }
-                $errors = [];
-                $actions = [];
-                $note = '';
-
-                $status = "Available";
-                $reserved = $slot['reserved_ts'] ?? null;
-                $slot_ts = $slot['date'] . " " . $slot['time'];
-                $slot_dt = new DateTime($slot_ts);
-                $is_past = $now_dt > $slot_dt;
-                $record = $slot['source_record_id'] ?? null;
-
-                // Go through logic to determine status
-                if (empty($record)) {
-                    if ($reserved) {
-                        // Only cancelled records are reserved without a record
-                        if ($is_past) {
-                            $status = "Cancelled (past)";
-                            $note = $slot['source_project_title'] ?? '';
-                        } else {
-                            // Previously cancelled
-                            $status = "Cancelled";
-                            $note = $slot['source_project_title'] ?? '';
-                            $actions[] = [
-                                "label" => "UnCancel (make available)",
-                                "action" => "resetSlot",
-                                "params" => [
-                                    "config_key" => $config_key,
-                                    "slot_id" => $slot_id
-                                ]
-                            ];
-                        }
-                    } else {
-                        // Available records are unreserved without a record
-                        $status = "Available";
-                        $actions[] = [
-                            "label" => "Cancel Slot",
-                            "action" => "cancelSlot",
-                            "params" => [
-                                "config_key" => $config_key,
-                                "slot_id" => $slot_id
-                            ]
-                        ];
-                    }
-                } else {
-                    // Has a record
-                    if ($reserved) {
-                        if ($is_past) {
-                            $status = "Reserved (past)";
-                        } else {
-                            $status = "Reserved";
-                            $actions[] = [
-                                "label" => "Reset Appt and Slot",
-                                "action" => "resetSlotAndAppointment",
-                                "params" => [
-                                    "config_key" => $config_key,
-                                    "record" => $record,
-                                    "instance" => $slot['source_instance_id'],
-                                    "slot_id" => $slot['slot_id']
-                                ]
-                            ];
-                        }
-
-                        // See if it points to an apptointment, if so, verify the appointment also points back to this slot
-                        $source_field = $slot['source_field'] ?? null;
-                        $source_project_id = $slot['source_project_id'] ?? null;
-                        $source_record_id = $slot['source_record_id'] ?? null;
-                        $source_event_id = $slot['source_event_id'] ?? null;
-                        $source_instance_id = $slot['source_instance_id'] ?? null;
-
-                        if (empty($appt_map[$slot_id])) {
-                            $errors[] = "Slot $slot_id points to appointment record $source_record_id / field $source_field in project $source_project_id, but that field does not point back to this slot.";
-                        } else {
-                            if (count($appt_map[$slot_id]) > 1) {
-                                $errors[] = "Slot $slot_id is claimed by more than one appointment: <pre>" . json_encode($appt_map[$slot_id]) . "</pre>";
-                            } else {
-                                $appt_info = $appt_map[$slot_id][0];
-                                if ($appt_info['appt_record'] != $source_record_id
-                                    || $appt_info['appt_event_id'] != $source_event_id
-                                    || $appt_info['appt_repeat_instance'] != $source_instance_id
-                                ) {
-                                    $errors[] = "Slot $slot_id does not match the appointment record that claims it: project $source_project_id, record $source_record_id, field $source_field - please investigate.";
-                                }
-                            }
-                        }
-                    } else {
-                        // Has record but isn't reserved -- this shouldn't happen
-                        $errors[] = "Slot $slot_id is assigned to record $record but is not marked as reserved.";
-                        $status = "Error";
-                        $actions[] = [
-                            "label" => "Reset Slot",
-                            "action" => "resetSlot",
-                            "params" => [
-                                "config_key" => $config_key,
-                                "slot_id" => $slot_id
-                            ]
-                        ];
-                        $actions[] = [
-                            "label" => "Cancel Slot",
-                            "action" => "cancelSlot",
-                            "params" => [
-                                "config_key" => $config_key,
-                                "slot_id" => $slot_id
-                            ]
-                        ];
-                    }
-                }
-
-                $results[$slot_id] = [
-                    'slot_project_id' => $slot_project_id,
-                    'config_keys' => [$config_key],
-                    'slot_id' => $slot_id,
-                    'slot_url' => APP_PATH_WEBROOT_FULL . 'redcap_v' . REDCAP_VERSION . "/DataEntry/index.php?pid=" . $config['slot-project-id'] . "&id=$slot_id&page=slots",
-                    'date' => $slot['date'],
-                    'project_filter' => $slot['project_filter'] ?? '',
-                    'slot_filter' => $slot['slot_filter'] ?? '',
-                    'time' => $slot['time'],
-                    'is_past' => $is_past,
-                    'note' => $note ?? '',
-                    'status' => $status,
-                    'errors' => implode('|', $errors),
-                    'actions' => $actions,
-                    'source_record_url' => $slot['source_record_url'] ?? '',
-                    'source_record_id' => $record,
-                    'title' => $slot['title'] ?? ''
-                ];
-            }
-        }
-        return $results;
+        return $this->buildSlotVerificationResults();
     }
 
 
