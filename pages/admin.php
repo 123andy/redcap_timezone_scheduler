@@ -179,10 +179,10 @@ $projectHomeUrl = function ($pid) {
       </p>
     </div>
     <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
-      <p>Below are all appointments for this project.  Use the search box in the upper corner to filter the list.
-        Any appointments with errors should be reviewed/corrected.  Upon making changes via an action button,
-        you should refresh the page to ensure any errors are resolved.
-      </p>
+      <h5><i class="fas fa-calendar-check mr-1"></i> Appointments</h5>
+      <p>Every appointment booked through this project is listed below. Use the search box to filter the list,
+        and review any row flagged with an error. After resolving an issue with an action button,
+        refresh the page to confirm the error is cleared.</p>
       <div style="width: 100%; max-width: 900px; margin: 0;">
         <table id="Appointments" class="table table-striped" style="max-width: 100%">
             <thead>
