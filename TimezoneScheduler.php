@@ -774,6 +774,18 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                     // $this->emDebug("Skipping slot $slot_id because if a slot-filter mismatch");
                     continue;
                 }
+
+                // NEW: enforce the per-instance max-days-ahead window.
+                // Ignore unless it's a positive integer (blank, "0", decimals, or junk = no filter).
+                $window = $config['slot-filter-window'] ?? '';
+                $window = is_string($window) ? trim($window) : $window;
+                if (ctype_digit((string)$window) && (int)$window > 0) {
+                    $cutoff  = (new DateTime("now"))->add(new DateInterval('P' . (int)$window . 'D'));
+                    $slot_dt = new DateTime($data['date'] . ' ' . $data['time']);
+                    if ($slot_dt > $cutoff) {
+                        continue;
+                    }
+                }
             }
             $slots[$slot_id] = $data;
         }

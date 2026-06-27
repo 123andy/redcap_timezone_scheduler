@@ -145,6 +145,13 @@
                     "type": "field-list"
                 },
                 {
+                    "key": "slot-filter-window",
+                    "name": "<b>Slot Filter Window</b><br><i>(Optional)</i> Specify the maximum number of days ahead from the current date that slots should be shown.  For example, if set to 14, one can only book a slot less than two weeks into the future.<ul><li>if blank, all slots will be displayed</li></ul>",
+                    "required": false,
+                    "validation": "int",
+                    "type": "text"
+                },
+                {
                     "key": "appt-participant-text-date-field",
                     "name": "<b>Appointment Participant Text Date Field</b><br><i>(Optional)</i> If specified, a simplified version of the selected date will be stored, <i>e.g. Wed, Nov 5th, 2025 at 9:00 AM CST</i>.<ul><li>Must be a <u>text field</u> (do not validate it as a date/time as this will fail)</li><li>recommended to use <code>@HIDDEN-SURVEY</code> or place this field on a different instrument so the participant does not see it in the survey</li></ul>",
                     "required": false,
