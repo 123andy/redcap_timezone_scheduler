@@ -89,6 +89,109 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
 
 
     /**
+     * Summarize this project's Timezone Scheduler configuration (the repeatable "instances").
+     * @return array List of ['config_key', 'appt_field', 'event_id', 'slot_project_id', 'disabled']
+     */
+    public function getConfigSummary() {
+        $this->load_tz_configs();
+        $summary = [];
+        foreach ($this->config as $config_key => $config) {
+            $summary[] = [
+                'config_key'      => $config_key,
+                'appt_field'      => $config['appt-field'] ?? null,
+                'event_id'        => $config['appt-event-id'] ?? null,
+                'slot_project_id' => $config['slot-project-id'] ?? null,
+                'disabled'        => !empty($config['disabled']),
+            ];
+        }
+        return $summary;
+    }
+
+    /**
+     * Per slot-database usage statistics for every slot DB referenced by this project's config.
+     * Slots are de-duplicated by slot_id within each DB (configs may share a DB).
+     * @return array List of stats arrays (see summarizeSlots) + 'slot_project_id' and 'config_keys'
+     * @throws TimezoneException
+     */
+    public function getSlotDbStats() {
+        $this->load_tz_configs();
+
+        $by_db = []; // slot_project_id => ['config_keys' => [], 'slots' => [slot_id => slot]]
+        foreach ($this->config as $config_key => $config) {
+            $pid = $config['slot-project-id'] ?? null;
+            if (empty($pid)) {
+                continue;
+            }
+            if (!isset($by_db[$pid])) {
+                $by_db[$pid] = ['config_keys' => [], 'slots' => []];
+            }
+            $by_db[$pid]['config_keys'][] = $config_key;
+            foreach ($this->getSlots($config_key, false) as $slot_id => $slot) {
+                $by_db[$pid]['slots'][$slot_id] = $slot; // de-dupe shared DB slots by slot_id
+            }
+        }
+
+        $now = new DateTime("now");
+        $result = [];
+        foreach ($by_db as $pid => $info) {
+            $stats = $this->summarizeSlots($info['slots'], $now);
+            $stats['slot_project_id'] = $pid;
+            $stats['config_keys'] = $info['config_keys'];
+            $result[] = $stats;
+        }
+        return $result;
+    }
+
+    /**
+     * Pure tally of a set of slot rows (no REDCap access), classifying each by booking
+     * status and past/future. "Cancelled" = reserved but not linked to a record (an admin
+     * blocked the slot). Utilization % = booked / (booked + available), excluding cancelled.
+     *
+     * @param array    $slots slot_id => slot data (as returned by getSlots())
+     * @param DateTime $now   reference time for past/future
+     * @return array{total:int,booked:int,cancelled:int,available:int,available_future:int,past:int,future:int,percent_used:int}
+     */
+    public function summarizeSlots(array $slots, DateTime $now) {
+        $s = [
+            'total' => 0, 'booked' => 0, 'cancelled' => 0,
+            'available' => 0, 'available_future' => 0, 'past' => 0, 'future' => 0,
+        ];
+        foreach ($slots as $slot) {
+            $s['total']++;
+
+            $reserved   = !empty($slot['reserved_ts']);
+            $has_record = !empty($slot['source_record_id']);
+
+            try {
+                $slot_dt = new DateTime(($slot['date'] ?? '') . ' ' . ($slot['time'] ?? ''));
+                $is_past = $now > $slot_dt;
+            } catch (Exception $e) {
+                $is_past = false;
+            }
+            if ($is_past) {
+                $s['past']++;
+            } else {
+                $s['future']++;
+            }
+
+            if ($reserved && $has_record) {
+                $s['booked']++;
+            } elseif ($reserved) {
+                $s['cancelled']++;
+            } else {
+                $s['available']++;
+                if (!$is_past) {
+                    $s['available_future']++;
+                }
+            }
+        }
+
+        $denom = $s['booked'] + $s['available'];
+        $s['percent_used'] = $denom > 0 ? (int) round(100 * $s['booked'] / $denom) : 0;
+        return $s;
+    }
+
+    /**
      * Verify the slots in the slot database(s) for consistency.
      * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
      *               (status, errors, and admin actions added)
@@ -99,64 +202,87 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
     /**
-     * Walk every configured slot database and build a verification map of all slots,
-     * annotating each with status, errors, and the admin actions available for it.
+     * Fetch layer for the slot verification: loads configs, appointment records, and
+     * slots from REDCap, normalizes them, then hands the plain data off to the pure
+     * computeSlotVerification() routine (which holds the testable logic).
      *
-     * Shared by verifySlots() and getIcalFeed().  Slots are keyed by a composite of
-     * "<slot_project_id>:<slot_id>" so that slots from different slot databases that
-     * happen to share the same record id (slot_id) do not collide with one another.
+     * Shared by verifySlots() and getIcalFeed().
      *
      * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
      * @throws TimezoneException
      */
     private function buildSlotVerificationResults() {
         $this->load_tz_configs();
-        $now_dt = new DateTime("now");
-        $results = [];
-        $appt_map = [];
 
-        // Build a map of all appointments (by slot) across every config so that we can
-        // later verify each reserved slot is pointed back to by exactly one appointment.
+        $appt_refs = [];           // flat list of normalized appointment references
+        $slots_by_config_key = []; // config_key => (slot_id => slot data)
+
         foreach($this->config as $config_key => $config) {
-            // $this->emDebug("Checking slots for config $config_key: ", $config);
-
-            // Get All Appointments for this config
             $appt_field = $config['appt-field'];
             $slot_project_id = $config['slot-project-id'];
+
+            // Get All Appointments for this config
             $appts = $this->getRecords($config_key);
             $this->emDebug("Found " . count($appts) . " appointments for config_key $config_key");
             foreach ($appts as $appt) {
                 $appt_event_name = $appt['redcap_event_name'] ?? null;
                 $appt_instance = $appt['redcap_repeat_instance'] ?? null;
 
-                $appt_record = $appt[REDCap::getRecordIdField()];
-                $appt_event_id = REDCap::getEventIdFromUniqueEvent($appt_event_name);
-                $appt_repeat_instance = $appt_instance ? $appt_instance : 1;
-                $appt_slot_id = $appt[$appt_field];
-
-                // Composite key so identical slot_ids across different slot DBs don't collide
-                $map_key = $slot_project_id . ':' . $appt_slot_id;
-                if (!isset($appt_map[$map_key])) {
-                    $appt_map[$map_key] = [];
-                }
-
-                $appt_map[$map_key][] = [
-                    'appt_project_id' => $this->getProjectId(),
-                    'appt_field' => $appt_field,
-                    'appt_record' => $appt_record,
-                    'appt_event_id' => $appt_event_id,
-                    'appt_repeat_instance' => $appt_repeat_instance,
-                    'config_key' => $config_key
+                // Resolve all REDCap-dependent values here so computeSlotVerification() stays pure
+                $appt_refs[] = [
+                    'slot_project_id'      => $slot_project_id,
+                    'appt_slot_id'         => $appt[$appt_field],
+                    'appt_project_id'      => $this->getProjectId(),
+                    'appt_field'           => $appt_field,
+                    'appt_record'          => $appt[REDCap::getRecordIdField()],
+                    'appt_event_id'        => REDCap::getEventIdFromUniqueEvent($appt_event_name),
+                    'appt_repeat_instance' => $appt_instance ? $appt_instance : 1,
+                    'config_key'           => $config_key,
                 ];
             }
-        }
-        // $this->emDebug("Appointment Maps for all config_keys:", $appt_map);
 
-        foreach($this->config as $config_key => $config) {
-            // Get All Slots for this config
-            $slots = $this->getSlots($config_key, false);
-            $this->emDebug("Verifying " . count($slots) . " slots for config_key $config_key");
+            // Get All Slots for this config (false = include reserved/unavailable)
+            $slots_by_config_key[$config_key] = $this->getSlots($config_key, false);
+        }
+
+        return $this->computeSlotVerification($this->config, $appt_refs, $slots_by_config_key, new DateTime("now"));
+    }
+
+    /**
+     * Pure verification logic, separated from REDCap data access so it can be unit tested.
+     *
+     * Both $appt_map and $results are keyed by a composite of "<slot_project_id>:<slot_id>"
+     * so that slots from different slot databases that happen to share the same record id
+     * (slot_id) do not collide with one another.
+     *
+     * @param array    $configs             config_key => config array (requires 'slot-project-id')
+     * @param array    $appt_refs           flat list of normalized appointment references (see buildSlotVerificationResults)
+     * @param array    $slots_by_config_key config_key => (slot_id => slot data) as returned by getSlots()
+     * @param DateTime $now                 the reference "now" used to decide past/future
+     * @return array Map of "<slot_project_id>:<slot_id>" => slot verification data
+     */
+    public function computeSlotVerification(array $configs, array $appt_refs, array $slots_by_config_key, DateTime $now) {
+        $results = [];
+        $appt_map = [];
+
+        // Build a map of all appointments (by slot) so we can verify each reserved slot is
+        // pointed back to by exactly one appointment.
+        foreach ($appt_refs as $ref) {
+            // Composite key so identical slot_ids across different slot DBs don't collide
+            $map_key = $ref['slot_project_id'] . ':' . $ref['appt_slot_id'];
+            $appt_map[$map_key][] = [
+                'appt_project_id'      => $ref['appt_project_id'],
+                'appt_field'           => $ref['appt_field'],
+                'appt_record'          => $ref['appt_record'],
+                'appt_event_id'        => $ref['appt_event_id'],
+                'appt_repeat_instance' => $ref['appt_repeat_instance'],
+                'config_key'           => $ref['config_key'],
+            ];
+        }
+
+        foreach($configs as $config_key => $config) {
             $slot_project_id = $config['slot-project-id'];
+            $slots = $slots_by_config_key[$config_key] ?? [];
 
             // Get all the slots for this config
             foreach ($slots as $slot_id => $slot) {
@@ -176,7 +302,7 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
                 $reserved = $slot['reserved_ts'] ?? null;
                 $slot_ts = $slot['date'] . " " . $slot['time'];
                 $slot_dt = new DateTime($slot_ts);
-                $is_past = $now_dt > $slot_dt;
+                $is_past = $now > $slot_dt;
                 $record = $slot['source_record_id'] ?? null;
 
                 // Go through logic to determine status
@@ -1351,26 +1477,165 @@ class TimezoneScheduler extends \ExternalModules\AbstractExternalModule {
     }
 
 
+    /**
+     * Return the tokenized, NOAUTH iCal subscription URL for this project, generating and
+     * persisting the feed token (ical_feed_hash project setting) on first use.
+     * @return string The full feed URL (pages/calendar.php?...&feed=<token>)
+     */
+    public function getIcalFeedUrl() {
+        $hash = $this->getProjectSetting('ical_feed_hash');
+        if (empty($hash)) {
+            $hash = \generateRandomHash(32, false);
+            $this->setProjectSetting('ical_feed_hash', $hash);
+            $this->emDebug("Generated new iCal feed token");
+        }
+        return $this->getUrl("pages/calendar.php", true) . "&feed=" . $hash;
+    }
+
+    /**
+     * Serve the iCal feed for this project's booked appointments.
+     * Called from pages/calendar.php AFTER the feed token has been validated.
+     * @param string $feed The (already-validated) feed token; not used to build content.
+     */
     public function serveICalFeed($feed) {
-        $appointments = $this->getIcalFeed();
-        // Serve iCal feed
-        // header('Content-Type: text/calendar; charset=utf-8');
-        // header('Content-Disposition: attachment; filename="appointment.ics"');
-        echo "<pre>";
-        echo "BEGIN:VCALENDAR\r\n";
-        echo "VERSION:2.0\r\n";
-        echo "PRODID:-//Timezone Scheduler Module//EN\r\n";
-        echo "CALSCALE:GREGORIAN\r\n";
-        echo "METHOD:PUBLISH\r\n";
+        $events = $this->getIcalFeed();
+        $project_id = $this->getProjectId();
+        $project_title = $this->getProject()->getTitle();
 
+        $calendar_name = 'Appointments: ' . $project_title . ' (pid ' . $project_id . ')';
+        $vcalendar = $this->buildVCalendar($events, date_default_timezone_get(), $calendar_name);
+        $filename = $this->getIcalFilename($project_id, $project_title);
 
-        echo $feed;
+        if (!headers_sent()) {
+            header('Content-Type: text/calendar; charset=utf-8');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+        } else {
+            $this->emError("Headers already sent before serving iCal feed; calendar apps may misinterpret the response.");
+        }
+        echo $vcalendar->serialize();
         exit;
     }
 
+    /**
+     * Build a descriptive, filesystem-safe .ics filename for the feed download,
+     * e.g. "timezone_scheduler_pid42_My_Study.ics".
+     * @param int|string $project_id
+     * @param string     $project_title
+     * @return string
+     */
+    public function getIcalFilename($project_id, $project_title) {
+        $slug = preg_replace('/[^A-Za-z0-9]+/', '_', (string)$project_title);
+        $slug = trim($slug, '_');
+        if (strlen($slug) > 40) {
+            $slug = trim(substr($slug, 0, 40), '_');
+        }
+        $name = 'timezone_scheduler_pid' . $project_id;
+        if ($slug !== '') {
+            $name .= '_' . $slug;
+        }
+        return $name . '.ics';
+    }
 
+
+    /**
+     * Collect all booked appointments across every configured slot database for this project.
+     * Only reserved slots that are linked back to a source record are included.
+     * @return array List of event arrays (uid, date, time, title, description, record, url)
+     * @throws TimezoneException
+     */
     public function getIcalFeed() {
-        return $this->buildSlotVerificationResults();
+        $this->load_tz_configs();
+        $events = [];
+        $seen = [];
+
+        foreach ($this->config as $config_key => $config) {
+            $slot_project_id = $config['slot-project-id'];
+            $slots = $this->getSlots($config_key, false);
+
+            foreach ($slots as $slot_id => $slot) {
+                // Only include actually-booked appointments (reserved and linked to a record)
+                if (empty($slot['reserved_ts']) || empty($slot['source_record_id'])) {
+                    continue;
+                }
+
+                // A slot DB shared by multiple configs would otherwise list the same slot twice
+                $uid_key = $slot_project_id . ':' . $slot_id;
+                if (isset($seen[$uid_key])) {
+                    continue;
+                }
+                $seen[$uid_key] = true;
+
+                $events[] = [
+                    'uid'         => 'tzs-' . $slot_project_id . '-' . $slot_id . '@timezone-scheduler',
+                    'slot_id'     => $slot_id,
+                    'date'        => $slot['date'],
+                    'time'        => $slot['time'],
+                    'title'       => $slot['title'] ?? 'Appointment',
+                    'description' => $slot['participant_description'] ?? '',
+                    'record'      => $slot['source_record_id'],
+                    'url'         => $slot['source_record_url'] ?? '',
+                ];
+            }
+        }
+        return $events;
+    }
+
+
+    /**
+     * Build a VCALENDAR document from a list of event arrays (see getIcalFeed()).
+     * Pure (no REDCap data access) so it can be unit tested.  Event times are interpreted
+     * in the given server timezone and emitted in UTC so subscribing calendars render them
+     * in each viewer's local time.  Events with an unparseable date/time are skipped.
+     *
+     * @param array  $events        List of event arrays (uid, date, time, title, description, record, url)
+     * @param string $server_tz     IANA timezone name the slot date/time values are stored in
+     * @param string $calendar_name Optional display name for the calendar (X-WR-CALNAME)
+     * @return VCalendar
+     */
+    public function buildVCalendar(array $events, $server_tz, $calendar_name = null) {
+        $tz = new DateTimeZone($server_tz);
+        $utc = new DateTimeZone('UTC');
+
+        $vcalendar = new VCalendar();
+        $vcalendar->PRODID = '-//Timezone Scheduler Module//EN';
+        if (!empty($calendar_name)) {
+            // Shown as the calendar's name in subscribing apps (Outlook/Google/Apple)
+            $vcalendar->add('X-WR-CALNAME', $calendar_name);
+        }
+
+        foreach ($events as $e) {
+            try {
+                $start = new DateTime($e['date'] . ' ' . $e['time'], $tz);
+            } catch (Exception $ex) {
+                $this->emError("Skipping iCal event with invalid date/time: " . $ex->getMessage(), $e);
+                continue;
+            }
+            $start->setTimezone($utc);
+            $end = (clone $start)->add(new DateInterval('PT30M')); // default 30 minute duration
+
+            // Build a plain-text description: appointment details + a link back to the record
+            $desc = [];
+            if (!empty($e['description'])) {
+                $html = str_replace(['<br>', '<br/>', '<br />'], "\n", $e['description']);
+                $desc[] = trim(strip_tags($html));
+            }
+            $desc[] = 'Record: ' . $e['record'];
+            if (!empty($e['url'])) {
+                $desc[] = $e['url'];
+            }
+
+            $vevent = $vcalendar->add('VEVENT', [
+                'UID'         => $e['uid'],
+                'SUMMARY'     => $e['title'],
+                'DESCRIPTION' => implode("\n", $desc),
+                'DTSTART'     => $start,
+                'DTEND'       => $end,
+            ]);
+            if (!empty($e['url'])) {
+                $vevent->add('URL', $e['url']);
+            }
+        }
+        return $vcalendar;
     }
 
 

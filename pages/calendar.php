@@ -31,14 +31,8 @@ if ($feed_raw) {
 }
 
 // Provide instructions on how to add the feed to calendar apps
-if (empty($feed_hash)) {
-    $hash = generateRandomHash(32, false);
-    $module->setProjectSetting('ical_feed_hash', $hash);
-    $module->emDebug("Generated new iCal feed: " . $hash);
-    $feed_hash = $hash; //htmlspecialchars_decode($hash, ENT_QUOTES);
-}
-
-$feedUrl = $module->getUrl("pages/calendar.php", true) . "&feed=" . $feed_hash;
+// (getIcalFeedUrl() generates & persists the token on first use)
+$feedUrl = $module->getIcalFeedUrl();
 
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 loadJS('Libraries/clipboard.js');
